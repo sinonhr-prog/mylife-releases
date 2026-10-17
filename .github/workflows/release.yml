@@ -136,6 +136,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
           name: "Релиз Моя жизнь ${{ steps.version_info.outputs.tag_name }}"
           draft: false
           prerelease: ${{ steps.version_info.outputs.channel == 'preview' }}
