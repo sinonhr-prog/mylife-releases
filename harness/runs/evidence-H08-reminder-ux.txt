@@ -1,0 +1,13 @@
+=== EVIDENCE: H08 reminder-ux ===
+Date: 2026-10-17T16:40:00+03:00
+Test: local.mylife.app.feature.reminders.RemindersFlowTest.testReminderUx_DiagnosticsHonestAboutVivoAndForceStop
+Result: PASS
+Details:
+- Diagnostics card:
+  * Displayed directly at the top of RemindersScreen in "Бумага / Фокус" design.
+  * Shows exact status: areNotificationsEnabled, canScheduleExactAlarms, Vivo/Funtouch OS detection.
+  * Lists concrete recommendations: system settings for notifications, alarms & reminders permission, Vivo background autostart & battery whitelist.
+  * Clear truth-telling without false guarantees: explicitly informs user that force-stop terminates delivery until app is manually reopened.
+- Dashboard integration:
+  * Active reminders are displayed on HomeScreen / Dashboard via RoomDashboardRepository.activeReminders.
+=== END EVIDENCE ===

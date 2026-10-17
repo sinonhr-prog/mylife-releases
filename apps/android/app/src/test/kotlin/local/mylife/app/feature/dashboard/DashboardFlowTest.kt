@@ -388,15 +388,27 @@ class FakeNoteDao : NoteDao {
 class FakeReminderDao : ReminderDao {
     val reminders = mutableMapOf<String, ReminderEntity>()
 
+    override suspend fun getAll(): List<ReminderEntity> =
+        reminders.values.sortedWith(compareByDescending<ReminderEntity> { it.isEnabled }.thenBy { it.fireEpochMs })
+
     override suspend fun getActiveReminders(): List<ReminderEntity> =
         reminders.values.filter { it.isEnabled }
 
     override suspend fun getById(id: String): ReminderEntity? = reminders[id]
 
+    override suspend fun getByTaskId(taskId: String): List<ReminderEntity> =
+        reminders.values.filter { it.taskId == taskId }
+
     override suspend fun getActiveCount(): Int = reminders.values.count { it.isEnabled }
 
     override suspend fun insert(reminder: ReminderEntity) {
         reminders[reminder.id] = reminder
+    }
+
+    override suspend fun updateEnabled(id: String, isEnabled: Boolean, updatedAtEpochMs: Long) {
+        reminders[id]?.let {
+            reminders[id] = it.copy(isEnabled = isEnabled, updatedAtEpochMs = updatedAtEpochMs)
+        }
     }
 
     override suspend fun delete(reminder: ReminderEntity) {

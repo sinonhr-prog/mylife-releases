@@ -1,0 +1,15 @@
+=== EVIDENCE: H08 reminder-device ===
+Date: 2026-10-17T16:40:00+03:00
+Test: local.mylife.app.feature.reminders.RemindersFlowTest.testReminderDevice_ExactAndInexactPolicy, testReminderDevice_RebootAndMissedEventsHandling
+Result: PASS
+Details:
+- Exact alarms:
+  * AndroidAlarmScheduler checks canScheduleExact() on API >= 31 (canScheduleExactAlarms()).
+  * Uses AlarmManager.setExactAndAllowWhileIdle() on API >= 23 with fallback to set() on SecurityException or when exact permission is missing.
+- Inexact policy:
+  * Gracefully handled without crash or disruption.
+- Reboot / Timezone change:
+  * BootAndChangeReceiver registered for ACTION_BOOT_COMPLETED, ACTION_TIME_SET, ACTION_TIMEZONE_CHANGED.
+  * Reschedules all active projection items.
+  * Past missed events: one-shot disabled, recurring moved to next future occurrence, single summary notification shown.
+=== END EVIDENCE ===

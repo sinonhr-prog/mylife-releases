@@ -146,11 +146,17 @@ interface TaskDao {
 
 @Dao
 interface ReminderDao {
+    @Query("SELECT * FROM reminders ORDER BY isEnabled DESC, fireEpochMs ASC")
+    suspend fun getAll(): List<ReminderEntity>
+
     @Query("SELECT * FROM reminders WHERE isEnabled = 1 ORDER BY fireEpochMs ASC")
     suspend fun getActiveReminders(): List<ReminderEntity>
 
     @Query("SELECT * FROM reminders WHERE id = :id")
     suspend fun getById(id: String): ReminderEntity?
+
+    @Query("SELECT * FROM reminders WHERE taskId = :taskId")
+    suspend fun getByTaskId(taskId: String): List<ReminderEntity>
 
     @Query("SELECT COUNT(*) FROM reminders WHERE isEnabled = 1")
     suspend fun getActiveCount(): Int
@@ -158,11 +164,32 @@ interface ReminderDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(reminder: ReminderEntity)
 
+    @Query("UPDATE reminders SET isEnabled = :isEnabled, updatedAtEpochMs = :updatedAtEpochMs WHERE id = :id")
+    suspend fun updateEnabled(id: String, isEnabled: Boolean, updatedAtEpochMs: Long)
+
     @Delete
     suspend fun delete(reminder: ReminderEntity)
 
     @Query("DELETE FROM reminders WHERE id = :id")
     suspend fun deleteById(id: String)
+}
+
+@Dao
+interface ScheduleOutboxDao {
+    @Query("SELECT * FROM schedule_outbox WHERE processedAtEpochMs IS NULL ORDER BY revision ASC")
+    suspend fun getPending(): List<ScheduleOutboxEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: ScheduleOutboxEntity)
+
+    @Query("UPDATE schedule_outbox SET processedAtEpochMs = :processedAtEpochMs WHERE id = :id")
+    suspend fun markProcessed(id: String, processedAtEpochMs: Long)
+
+    @Query("DELETE FROM schedule_outbox WHERE processedAtEpochMs IS NOT NULL AND processedAtEpochMs < :thresholdEpochMs")
+    suspend fun deleteProcessedBefore(thresholdEpochMs: Long)
+
+    @Query("DELETE FROM schedule_outbox WHERE reminderId = :reminderId")
+    suspend fun deleteForReminder(reminderId: String)
 }
 
 @Dao

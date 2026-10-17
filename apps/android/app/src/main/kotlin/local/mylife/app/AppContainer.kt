@@ -39,7 +39,8 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
             return current
         }
         closeStorageSession()
-        val session = StorageSession(context, mainDbKey)
+        val schedulerPort = local.mylife.app.feature.reminders.AndroidAlarmScheduler(context)
+        val session = StorageSession(context, mainDbKey, schedulerPort)
         activeSession = session
         activeKey = mainDbKey.clone()
         return session

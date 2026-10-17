@@ -213,14 +213,75 @@ class RoomNoteRepository(private val dao: NoteDao) : NoteRepository {
     private fun Note.toEntity() = NoteEntity(id, title, body, isFavorite, createdAtEpochMs, updatedAtEpochMs)
 }
 
-class RoomReminderRepository(private val dao: ReminderDao) : ReminderRepository {
+class RoomReminderRepository(
+    private val dao: ReminderDao,
+    private val outboxDao: ScheduleOutboxDao? = null,
+) : ReminderRepository {
+    override suspend fun getAllReminders(): List<ReminderItem> = dao.getAll().map { it.toDomain() }
+
     override suspend fun getActiveReminders(): List<ReminderItem> = dao.getActiveReminders().map { it.toDomain() }
 
     override suspend fun getReminderById(id: String): ReminderItem? = dao.getById(id)?.toDomain()
 
-    override suspend fun saveReminder(reminder: ReminderItem) = dao.insert(reminder.toEntity())
+    override suspend fun getRemindersByTaskId(taskId: String): List<ReminderItem> =
+        dao.getByTaskId(taskId).map { it.toDomain() }
 
-    override suspend fun deleteReminder(id: String) = dao.deleteById(id)
+    override suspend fun saveReminder(reminder: ReminderItem) {
+        dao.insert(reminder.toEntity())
+        outboxDao?.insert(
+            ScheduleOutboxEntity(
+                id = java.util.UUID.randomUUID().toString(),
+                reminderId = reminder.id,
+                revision = System.currentTimeMillis(),
+                operation = if (reminder.isEnabled) "UPSERT" else "CANCEL",
+                processedAtEpochMs = null,
+            )
+        )
+    }
+
+    override suspend fun toggleReminder(id: String, isEnabled: Boolean) {
+        val now = System.currentTimeMillis()
+        dao.updateEnabled(id, isEnabled, now)
+        outboxDao?.insert(
+            ScheduleOutboxEntity(
+                id = java.util.UUID.randomUUID().toString(),
+                reminderId = id,
+                revision = now,
+                operation = if (isEnabled) "UPSERT" else "CANCEL",
+                processedAtEpochMs = null,
+            )
+        )
+    }
+
+    override suspend fun deleteReminder(id: String) {
+        dao.deleteById(id)
+        outboxDao?.insert(
+            ScheduleOutboxEntity(
+                id = java.util.UUID.randomUUID().toString(),
+                reminderId = id,
+                revision = System.currentTimeMillis(),
+                operation = "CANCEL",
+                processedAtEpochMs = null,
+            )
+        )
+    }
+
+    override suspend fun cancelRemindersForTask(taskId: String) {
+        val linked = dao.getByTaskId(taskId)
+        val now = System.currentTimeMillis()
+        linked.forEach { r ->
+            dao.updateEnabled(r.id, false, now)
+            outboxDao?.insert(
+                ScheduleOutboxEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    reminderId = r.id,
+                    revision = now,
+                    operation = "CANCEL",
+                    processedAtEpochMs = null,
+                )
+            )
+        }
+    }
 
     private fun ReminderEntity.toDomain() = ReminderItem(
         id = id,

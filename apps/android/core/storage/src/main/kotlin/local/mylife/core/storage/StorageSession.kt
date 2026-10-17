@@ -20,6 +20,7 @@ import java.util.Arrays
 class StorageSession(
     context: Context,
     private val rawKey: ByteArray,
+    private val schedulerPort: local.mylife.core.storage.scheduler.SchedulerPort? = null,
 ) {
     private val db = EncryptedDatabaseFactory.createDatabase(context, "main.db", rawKey)
 
@@ -27,7 +28,8 @@ class StorageSession(
     val productRepository: ProductRepository = RoomProductRepository(db.productDao(), db.attachmentDao())
     val placeRepository: PlaceRepository = RoomPlaceRepository(db.placeDao(), db.attachmentDao())
     val noteRepository: NoteRepository = RoomNoteRepository(db.noteDao())
-    val taskRepository: TaskRepository = RoomTaskRepository(db.taskDao())
+    val reminderRepository: local.mylife.core.model.ReminderRepository = local.mylife.core.storage.db.RoomReminderRepository(db.reminderDao(), db.scheduleOutboxDao())
+    val taskRepository: TaskRepository = RoomTaskRepository(db.taskDao(), reminderRepository)
     val dashboardRepository: DashboardRepository = RoomDashboardRepository(
         db.taskDao(),
         db.reminderDao(),
@@ -36,6 +38,20 @@ class StorageSession(
         db.noteDao(),
     )
     val attachmentStore: EncryptedAttachmentStore = EncryptedAttachmentStore(context.filesDir)
+
+    val schedulerProjectionStore: local.mylife.core.storage.scheduler.SchedulerProjectionStore =
+        local.mylife.core.storage.scheduler.SchedulerProjectionStore(context.filesDir)
+
+    val schedulerReconciler: local.mylife.core.storage.scheduler.SchedulerReconciler =
+        local.mylife.core.storage.scheduler.SchedulerReconciler(
+            db.scheduleOutboxDao(),
+            db.reminderDao(),
+            schedulerProjectionStore,
+            schedulerPort ?: object : local.mylife.core.storage.scheduler.SchedulerPort {
+                override fun schedule(reminderId: String, triggerAtEpochMs: Long) {}
+                override fun cancel(reminderId: String) {}
+            },
+        )
 
     fun close() {
         db.close()

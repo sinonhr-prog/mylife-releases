@@ -1,0 +1,16 @@
+=== EVIDENCE: H08 reminder-privacy ===
+Date: 2026-10-17T16:40:00+03:00
+Test: local.mylife.app.feature.reminders.RemindersFlowTest.testReminderPrivacy_ProjectionContainsNoPersonalTextOrKeys
+Result: PASS
+Details:
+- Scheduler projection:
+  * Stored in `scheduler_projection.json` via SchedulerProjectionStore.
+  * Schema: reminderId, fireEpochMs, repeatRule, isEnabled.
+  * Verified: zero titles, zero notes, zero descriptions, zero database keys or PINs in projection file.
+- Lockscreen notifications:
+  * ReminderNotificationHelper uses NotificationCompat.VISIBILITY_PRIVATE.
+  * Neutral text: Title "Напоминание", Content "У вас запланировано дело. Откройте приложение для просмотра.".
+  * No details or personal text exposed outside authenticated session.
+- Isolation:
+  * Receivers (ReminderAlarmReceiver, BootAndChangeReceiver) operate strictly on minimal projection file without opening main.db or vault.db and without accessing encryption keys.
+=== END EVIDENCE ===

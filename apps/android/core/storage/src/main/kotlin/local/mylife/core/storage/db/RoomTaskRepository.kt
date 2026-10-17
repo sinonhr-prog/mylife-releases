@@ -2,12 +2,14 @@ package local.mylife.core.storage.db
 
 import local.mylife.core.model.DashboardRepository
 import local.mylife.core.model.DashboardSummary
+import local.mylife.core.model.ReminderRepository
 import local.mylife.core.model.TaskItem
 import local.mylife.core.model.TaskRepository
 import local.mylife.core.model.TaskStatus
 
 class RoomTaskRepository(
     private val taskDao: TaskDao,
+    private val reminderRepository: ReminderRepository? = null,
 ) : TaskRepository, DashboardRepository {
     override suspend fun getOpenTasks(): List<TaskItem> {
         return taskDao.getTasksByStatus(TaskStatus.OPEN).map { it.toDomain() }
@@ -28,10 +30,12 @@ class RoomTaskRepository(
     override suspend fun markTaskDone(id: String) {
         val now = System.currentTimeMillis()
         taskDao.updateStatus(id, TaskStatus.DONE, now, now)
+        reminderRepository?.cancelRemindersForTask(id)
     }
 
     override suspend fun deleteTask(id: String) {
         taskDao.deleteById(id)
+        reminderRepository?.cancelRemindersForTask(id)
     }
 
     override suspend fun getDashboardSummary(): DashboardSummary {

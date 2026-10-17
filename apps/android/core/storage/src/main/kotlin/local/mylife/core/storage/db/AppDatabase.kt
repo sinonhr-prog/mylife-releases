@@ -30,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun noteDao(): NoteDao
     abstract fun taskDao(): TaskDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun scheduleOutboxDao(): ScheduleOutboxDao
     abstract fun attachmentDao(): AttachmentDao
 
     companion object {

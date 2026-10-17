@@ -19,24 +19,24 @@
 - Следующий отдельный шаг: постоянный совместимый подписанный канал и разрешённый конкретный выпуск, затем настоящий V1→V2 через GitHub. Не удалять приложение, не менять подпись на устройстве и не ослаблять проверки ради установки.
 - Публичный push текущего исправления BLOCKED: auto-review отклонил source/CI/harness как выход за allowlist канала. Отправка не выполнена; повтор через иной инструмент запрещён. Требуется отдельное разрешение владельца на состав публичной синхронизации, см. PUB-001. APK и ключи не публиковались.
 
-## Текущий запуск: H07 (Места, заметки, задачи и живой дашборд)
+## Завершённый запуск: H08 (Напоминания и ограничения Android/Vivo)
 
-- RunId: `20261017-125500-gemini-h07`, модель `gemini-3.8-flash`, lock занят.
-- Поручение владельца: «Продолжи по плану». Scope: этап H07.
-- Завершены все шаги:
-  - H07.1 — Реализовать места: категории («Магазины», «Парки», «Кафе», «Рестораны»), поддержка пользовательских категорий, `PlacesViewModel`, `PlacesScreen`, зашифрованные фото, валидация.
-  - H07.2 — Реализовать заметки и задачи: `TasksViewModel`, `TasksScreen`, `NotesViewModel`, `NotesScreen`, строгая сортировка OPEN задач, безопасные черновики, смена статуса.
-  - H07.3 — Собрать DashboardRepository: `RoomDashboardRepository`, сборка сводки без дублирования фокуса, `focusTask`, `remainingTasks`, `recentVisits`, `recentRecords`, `activeReminders`, изоляция Сейфа и архива, обновление `HomeScreen` и `HomeViewModel`.
-  - H07.4 — Проверить связи и состояния: тестирование удаления категорий с сохранением мест, empty blocks, неизменность `createdAt`, персистентность при перезапуске/офлайн.
+- RunId: `20261017-133000-gemini-h08`, модель `gemini-3.8-flash`. Этап закрыт (`closed: "H08"`, 9 из 12 этапов закрыто).
+- Завершены все 4 шага:
+  - H08.1 — Реализовать правила и outbox: `ReminderRepeat` (ONCE, DAILY, WEEKLY), калькулятор триггеров с учетом DST/часовых поясов, транзакционный Room `schedule_outbox` и `SchedulerProjectionStore` (минимальная изолированная проекция без текстов и ключей). Отмена напоминаний при выполнении и удалении задач.
+  - H08.2 — Подключить delivery и разрешения: `AndroidAlarmScheduler` (exact alarms с fallback на inexact), канал с `VISIBILITY_PRIVATE`, строго нейтральные уведомления на экране блокировки без раскрытия личных данных.
+  - H08.3 — Проверить изменения времени: `BootAndChangeReceiver` (обработка boot, смены времени и пояса), восстановление расписания из проекции, группировка пропущенных за время выключения событий.
+  - H08.4 — Проверить Vivo и dashboard: честная диагностика разрешений устройства, уведомлений и ограничений Vivo/Funtouch OS (`DeviceDiagnosticsHelper`), экран `RemindersScreen` в дизайне «Бумага / Фокус», интеграция с дашбордом и боковым меню ☰.
 - Проверки (все PASS):
-  - `personal-crud` — PASS (14/14 unit-тестов CRUD, поиск, фильтры, черновики, валидация).
-  - `dashboard-order` — PASS (сортировка задач, tie-break, recent visits без будущих дат, стабильность createdAt).
-  - `dashboard-isolation` — PASS (Сейф и архивированные покупки строго изолированы от дашборда).
-  - `category-integrity` — PASS (удаление пользовательской категории сохраняет записи и вложения).
-  - `:app:testDebugUnitTest` (31/31 PASS).
-  - `gradlew test` (все тесты модулей BUILD SUCCESSFUL).
+  - `reminder-rules` — PASS (повторы, временные зоны, отмена при завершении задач).
+  - `reminder-device` — PASS (политика точных/неточных будильников, reboot, группировка пропущенных).
+  - `reminder-privacy` — PASS (проекция без текста/заметок/ключей, нейтральный экран блокировки).
+  - `reminder-ux` — PASS (честная диагностика без ложных обещаний доставки при force-stop).
+  - `:app:testDebugUnitTest` (36/36 PASS).
+  - `gradlew test` (все модули BUILD SUCCESSFUL).
   - `:app:lintDebug` (BUILD SUCCESSFUL, 0 error issues).
   - `:app:assembleDebug` (BUILD SUCCESSFUL).
-  - `node scripts/verify-project.mjs` — PASS (98 md, 269 links).
-  - `node scripts/harness.mjs validate` — PASS.
-- Следующий этап: H08 (Напоминания и ограничения Android/Vivo).
+  - `node scripts/verify-project.mjs` — PASS (99 md, 269 links).
+  - `node scripts/harness.mjs validate` — PASS (9/12 phases completed).
+- Следующий этап: H09 (Сейф, настройки и пользовательский backup UX).
+

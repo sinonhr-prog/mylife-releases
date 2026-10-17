@@ -15,5 +15,6 @@ class MyLifeApp : Application() {
         container = DefaultAppContainer(this)
         sessionLifecycleManager = SessionLifecycleManager(container.sessionManager)
         registerActivityLifecycleCallbacks(sessionLifecycleManager)
+        local.mylife.app.feature.reminders.ReminderNotificationHelper.ensureChannel(this)
     }
 }

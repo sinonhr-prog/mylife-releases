@@ -1,0 +1,17 @@
+=== EVIDENCE: H08 reminder-rules ===
+Date: 2026-10-17T16:40:00+03:00
+Test: local.mylife.app.feature.reminders.RemindersFlowTest.testReminderRules_OnceDailyWeeklyCalculations
+Result: PASS
+Details:
+- ReminderRepeat: ONCE, DAILY, WEEKLY.
+- ReminderTriggerCalculator:
+  * ONCE: returns base fire timestamp if now < base; returns null if already passed.
+  * DAILY: if now < today fire time, returns today; if now >= today fire time, returns tomorrow at same time in target timezone (Europe/Moscow).
+  * WEEKLY: moves forward to same day of week and exact hour/minute.
+- Task completion / deletion link:
+  * RoomTaskRepository / InMemoryTaskRepository cancels linked reminders on markTaskDone() and deleteTask().
+  * Outbox operation "CANCEL" generated for each linked reminder.
+  * Verified in testReminderRules_TaskCompletionAndDeletionCancelsReminders (PASS).
+- No duplicates:
+  * Reconciler and SchedulerProjectionStore use reminderId as unique key.
+=== END EVIDENCE ===

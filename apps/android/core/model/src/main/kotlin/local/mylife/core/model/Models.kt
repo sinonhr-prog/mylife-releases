@@ -127,6 +127,13 @@ data class TaskItem(
 }
 
 @Serializable
+enum class ReminderRepeat {
+    ONCE,
+    DAILY,
+    WEEKLY,
+}
+
+@Serializable
 data class ReminderItem(
     val id: String,
     val taskId: String? = null,
@@ -140,6 +147,51 @@ data class ReminderItem(
     init {
         require(title.isNotBlank() && title.length <= 160) { "Reminder title must be 1..160 chars" }
         require(fireEpochMs > 0) { "Fire instant must be positive" }
+    }
+
+    val repeat: ReminderRepeat
+        get() = when (repeatRule?.uppercase()) {
+            "DAILY" -> ReminderRepeat.DAILY
+            "WEEKLY" -> ReminderRepeat.WEEKLY
+            else -> ReminderRepeat.ONCE
+        }
+}
+
+object ReminderTriggerCalculator {
+    fun computeNextTrigger(
+        baseFireEpochMs: Long,
+        repeat: ReminderRepeat,
+        now: Long = System.currentTimeMillis(),
+        zoneId: java.time.ZoneId = java.time.ZoneId.systemDefault(),
+    ): Long? {
+        if (repeat == ReminderRepeat.ONCE) {
+            return if (baseFireEpochMs >= now) baseFireEpochMs else null
+        }
+
+        val baseInstant = java.time.Instant.ofEpochMilli(baseFireEpochMs)
+        val baseZdt = baseInstant.atZone(zoneId)
+        val nowZdt = java.time.Instant.ofEpochMilli(now).atZone(zoneId)
+
+        var candidate = nowZdt
+            .withHour(baseZdt.hour)
+            .withMinute(baseZdt.minute)
+            .withSecond(0)
+            .withNano(0)
+
+        if (repeat == ReminderRepeat.DAILY) {
+            if (!candidate.isAfter(nowZdt)) {
+                candidate = candidate.plusDays(1)
+            }
+            return candidate.toInstant().toEpochMilli()
+        } else if (repeat == ReminderRepeat.WEEKLY) {
+            val targetDayOfWeek = baseZdt.dayOfWeek
+            while (candidate.dayOfWeek != targetDayOfWeek || !candidate.isAfter(nowZdt)) {
+                candidate = candidate.plusDays(1)
+            }
+            return candidate.toInstant().toEpochMilli()
+        }
+
+        return null
     }
 }
 
@@ -258,10 +310,14 @@ interface TaskRepository {
 }
 
 interface ReminderRepository {
+    suspend fun getAllReminders(): List<ReminderItem>
     suspend fun getActiveReminders(): List<ReminderItem>
     suspend fun getReminderById(id: String): ReminderItem?
+    suspend fun getRemindersByTaskId(taskId: String): List<ReminderItem> = emptyList()
     suspend fun saveReminder(reminder: ReminderItem)
+    suspend fun toggleReminder(id: String, isEnabled: Boolean) {}
     suspend fun deleteReminder(id: String)
+    suspend fun cancelRemindersForTask(taskId: String) {}
 }
 
 interface VaultRepository {

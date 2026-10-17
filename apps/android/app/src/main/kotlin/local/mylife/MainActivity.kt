@@ -69,6 +69,8 @@ import local.mylife.app.feature.purchases.PurchasesScreen
 import local.mylife.app.feature.purchases.PurchasesViewModel
 import local.mylife.app.feature.tasks.TasksScreen
 import local.mylife.app.feature.tasks.TasksViewModel
+import local.mylife.app.feature.reminders.RemindersScreen
+import local.mylife.app.feature.reminders.RemindersViewModel
 import local.mylife.app.feature.settings.updater.UpdateScreen
 import local.mylife.app.feature.settings.updater.UpdateViewModel
 import local.mylife.core.designsystem.components.FocusEmptyState
@@ -163,6 +165,15 @@ fun MainDashboardShell(
     val attachmentStore = storageSession.attachmentStore
 
     val dashboardRepo = storageSession.dashboardRepository
+
+    val remindersRepo = storageSession.reminderRepository
+    val schedulerReconciler = storageSession.schedulerReconciler
+
+    val remindersViewModel = remember(remindersRepo, taskRepo, schedulerReconciler) {
+        RemindersViewModel(remindersRepo, taskRepo, schedulerReconciler).apply {
+            setDiagnostics(local.mylife.app.feature.reminders.DeviceDiagnosticsHelper.checkDiagnostics(app))
+        }
+    }
 
     val homeViewModel = remember(dashboardRepo, taskRepo) {
         HomeViewModel(dashboardRepo, taskRepo)
@@ -393,6 +404,10 @@ fun MainDashboardShell(
                             IconButton(onClick = { notesViewModel.openAddNote() }) {
                                 Text("+", fontSize = 24.sp, color = PaperForeground)
                             }
+                        } else if (selectedCategory == "Напоминания") {
+                            IconButton(onClick = { remindersViewModel.openAddReminder() }) {
+                                Text("+", fontSize = 24.sp, color = PaperForeground)
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -421,6 +436,7 @@ fun MainDashboardShell(
                                     in listOf("Магазины", "Парки", "Кафе", "Рестораны") -> placesViewModel.openAddPlace()
                                     "Задачи" -> tasksViewModel.openAddTask()
                                     "Заметки" -> notesViewModel.openAddNote()
+                                    "Напоминания" -> remindersViewModel.openAddReminder()
                                     else -> showQuickAddDialog = true
                                 }
                             },
@@ -476,6 +492,12 @@ fun MainDashboardShell(
                     "Заметки" -> {
                         NotesScreen(
                             viewModel = notesViewModel,
+                        )
+                    }
+
+                    "Напоминания" -> {
+                        local.mylife.app.feature.reminders.RemindersScreen(
+                            viewModel = remindersViewModel,
                         )
                     }
 
@@ -620,6 +642,20 @@ fun MainDashboardShell(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("✎ Текстовая заметка", color = PaperForeground)
+                    }
+
+                    Button(
+                        onClick = {
+                            showQuickAddDialog = false
+                            selectedCategory = "Напоминания"
+                            remindersViewModel.openAddReminder()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
+                        border = BorderStroke(1.dp, PaperOutline),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("🔔 Напоминание / будильник", color = PaperForeground)
                     }
                 }
             },
