@@ -1,11 +1,17 @@
 package local.mylife.core.storage
 
 import android.content.Context
+import local.mylife.core.model.CategoryRepository
 import local.mylife.core.model.DashboardRepository
+import local.mylife.core.model.NoteRepository
+import local.mylife.core.model.PlaceRepository
 import local.mylife.core.model.ProductRepository
 import local.mylife.core.model.TaskRepository
 import local.mylife.core.storage.db.EncryptedDatabaseFactory
+import local.mylife.core.storage.db.RoomCategoryRepository
 import local.mylife.core.storage.db.RoomDashboardRepository
+import local.mylife.core.storage.db.RoomNoteRepository
+import local.mylife.core.storage.db.RoomPlaceRepository
 import local.mylife.core.storage.db.RoomProductRepository
 import local.mylife.core.storage.db.RoomTaskRepository
 import local.mylife.core.storage.files.EncryptedAttachmentStore
@@ -17,13 +23,17 @@ class StorageSession(
 ) {
     private val db = EncryptedDatabaseFactory.createDatabase(context, "main.db", rawKey)
 
+    val categoryRepository: CategoryRepository = RoomCategoryRepository(db.categoryDao())
     val productRepository: ProductRepository = RoomProductRepository(db.productDao(), db.attachmentDao())
+    val placeRepository: PlaceRepository = RoomPlaceRepository(db.placeDao(), db.attachmentDao())
+    val noteRepository: NoteRepository = RoomNoteRepository(db.noteDao())
     val taskRepository: TaskRepository = RoomTaskRepository(db.taskDao())
     val dashboardRepository: DashboardRepository = RoomDashboardRepository(
         db.taskDao(),
         db.reminderDao(),
         db.placeDao(),
         db.productDao(),
+        db.noteDao(),
     )
     val attachmentStore: EncryptedAttachmentStore = EncryptedAttachmentStore(context.filesDir)
 

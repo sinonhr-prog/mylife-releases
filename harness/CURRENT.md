@@ -19,18 +19,24 @@
 - Следующий отдельный шаг: постоянный совместимый подписанный канал и разрешённый конкретный выпуск, затем настоящий V1→V2 через GitHub. Не удалять приложение, не менять подпись на устройстве и не ослаблять проверки ради установки.
 - Публичный push текущего исправления BLOCKED: auto-review отклонил source/CI/harness как выход за allowlist канала. Отправка не выполнена; повтор через иной инструмент запрещён. Требуется отдельное разрешение владельца на состав публичной синхронизации, см. PUB-001. APK и ключи не публиковались.
 
-## Текущий запуск: H06 (Утверждённый Фокус и покупки)
+## Текущий запуск: H07 (Места, заметки, задачи и живой дашборд)
 
-- RunId: `20261017-142500-gemini-h06`, модель `gemini-3.8-flash`.
-- Поручение владельца: «Продолжай разработку, после существенных изменений в приложении публикуй все на гитхаб, добавь это правило себе в документацию этого проекта».
-- Выполнены и проверены все 4 шага этапа H06:
-  - H06.1 — Перенести токены и компоненты: `Theme.kt`, `FocusComponents.kt` (`FocusCard`, `SectionHeader`, `FocusEmptyState`, `RatingBadge`), unit-тесты `ThemeTest.kt` (WCAG AAA > 15:1).
-  - H06.2 — Сделать drawer и shell: `MainDashboardShell` в `MainActivity.kt`, левый drawer со всеми категориями (Главная, Покупки, Магазины, Парки, Кафе, Рестораны, Задачи, Заметки, Напоминания, Сейф, Настройки), полное отсутствие нижних вкладок, навигация Back, автоблокировка Сейфа `lockVault()`.
-  - H06.3 — Реализовать покупки: `StorageSession` инкапсулирует Room внутри storage, связи `ProductAttachmentCrossRef`, `PurchasesViewModel` и `PurchasesScreen` с CRUD, поиском, фильтрами, валидацией рейтинга/цены и зашифрованными фото через Tink Streaming AEAD.
-  - H06.4 — Подключить доступную часть дашборда: `HomeViewModel`, `HomeScreen` с интро «Сначала главное», выделенной карточкой ближайшего дела, секцией покупок и честными пустыми состояниями; `ProductFlowTest` (3/3 PASS), `MainActivityTest` на Android 10 API 29 (1/1 PASS).
-- Проверки (Required Checks):
-  - `focus-ui` — PASS (токены #FFFFFF/#202020, Focus Card, левый drawer, отсутствие нижних вкладок).
-  - `product-flow` — PASS (CRUD, зашифрованное фото, рейтинг 1..10, фильтры, поиск, архив/восстановление).
-  - `ui-accessibility` — PASS (WCAG AAA > 15:1, touch target >= 48dp, BackHandler, адаптивность 320-430dp).
-  - `ui-private` — PASS (текстовое хранение URL без сетевых запросов, FLAG_SECURE на PIN/Vault экранах).
-- Следующий этап: H07 (Места, заметки, задачи и живой дашборд).
+- RunId: `20261017-125500-gemini-h07`, модель `gemini-3.8-flash`, lock занят.
+- Поручение владельца: «Продолжи по плану». Scope: этап H07.
+- Завершены все шаги:
+  - H07.1 — Реализовать места: категории («Магазины», «Парки», «Кафе», «Рестораны»), поддержка пользовательских категорий, `PlacesViewModel`, `PlacesScreen`, зашифрованные фото, валидация.
+  - H07.2 — Реализовать заметки и задачи: `TasksViewModel`, `TasksScreen`, `NotesViewModel`, `NotesScreen`, строгая сортировка OPEN задач, безопасные черновики, смена статуса.
+  - H07.3 — Собрать DashboardRepository: `RoomDashboardRepository`, сборка сводки без дублирования фокуса, `focusTask`, `remainingTasks`, `recentVisits`, `recentRecords`, `activeReminders`, изоляция Сейфа и архива, обновление `HomeScreen` и `HomeViewModel`.
+  - H07.4 — Проверить связи и состояния: тестирование удаления категорий с сохранением мест, empty blocks, неизменность `createdAt`, персистентность при перезапуске/офлайн.
+- Проверки (все PASS):
+  - `personal-crud` — PASS (14/14 unit-тестов CRUD, поиск, фильтры, черновики, валидация).
+  - `dashboard-order` — PASS (сортировка задач, tie-break, recent visits без будущих дат, стабильность createdAt).
+  - `dashboard-isolation` — PASS (Сейф и архивированные покупки строго изолированы от дашборда).
+  - `category-integrity` — PASS (удаление пользовательской категории сохраняет записи и вложения).
+  - `:app:testDebugUnitTest` (31/31 PASS).
+  - `gradlew test` (все тесты модулей BUILD SUCCESSFUL).
+  - `:app:lintDebug` (BUILD SUCCESSFUL, 0 error issues).
+  - `:app:assembleDebug` (BUILD SUCCESSFUL).
+  - `node scripts/verify-project.mjs` — PASS (98 md, 269 links).
+  - `node scripts/harness.mjs validate` — PASS.
+- Следующий этап: H08 (Напоминания и ограничения Android/Vivo).

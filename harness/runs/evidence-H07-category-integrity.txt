@@ -1,0 +1,14 @@
+Evidence for required check: category-integrity
+Phase: H07 (Места, заметки, задачи и живой дашборд)
+Command: .\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.places.PlaceFlowTest.testCustomCategoryAndIntegrity
+ObservedAt: 2026-10-17T13:20:52Z
+ExitCode: 0
+
+Tests executed:
+- testCustomCategoryAndIntegrity: PASS
+  * Custom category creation verified.
+  * Adding place under custom category verified.
+  * Safe category deletion with re-assignment to fallback category ("cat_shops") verified.
+  * Preserved all places and metadata without record loss.
+
+Result: 1/1 tests passed. Category integrity and migration verified. PASS

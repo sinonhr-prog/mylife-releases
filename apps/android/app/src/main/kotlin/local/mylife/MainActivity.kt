@@ -61,8 +61,14 @@ import local.mylife.app.feature.auth.PinScreen
 import local.mylife.app.feature.auth.PinViewModel
 import local.mylife.app.feature.home.HomeScreen
 import local.mylife.app.feature.home.HomeViewModel
+import local.mylife.app.feature.notes.NotesScreen
+import local.mylife.app.feature.notes.NotesViewModel
+import local.mylife.app.feature.places.PlacesScreen
+import local.mylife.app.feature.places.PlacesViewModel
 import local.mylife.app.feature.purchases.PurchasesScreen
 import local.mylife.app.feature.purchases.PurchasesViewModel
+import local.mylife.app.feature.tasks.TasksScreen
+import local.mylife.app.feature.tasks.TasksViewModel
 import local.mylife.app.feature.settings.updater.UpdateScreen
 import local.mylife.app.feature.settings.updater.UpdateViewModel
 import local.mylife.core.designsystem.components.FocusEmptyState
@@ -150,14 +156,28 @@ fun MainDashboardShell(
     // Repositories & ViewModels
     val storageSession = remember(mainDbKey) { app.container.getStorageSession(mainDbKey) }
     val productRepo = storageSession.productRepository
+    val categoryRepo = storageSession.categoryRepository
+    val placeRepo = storageSession.placeRepository
     val taskRepo = storageSession.taskRepository
+    val noteRepo = storageSession.noteRepository
     val attachmentStore = storageSession.attachmentStore
 
-    val homeViewModel = remember(taskRepo, productRepo) {
-        HomeViewModel(taskRepo, productRepo)
+    val dashboardRepo = storageSession.dashboardRepository
+
+    val homeViewModel = remember(dashboardRepo, taskRepo) {
+        HomeViewModel(dashboardRepo, taskRepo)
     }
     val purchasesViewModel = remember(productRepo, attachmentStore, mainDbKey) {
         PurchasesViewModel(productRepo, attachmentStore, mainDbKey)
+    }
+    val placesViewModel = remember(placeRepo, categoryRepo, attachmentStore, mainDbKey) {
+        PlacesViewModel(placeRepo, categoryRepo, attachmentStore, mainDbKey)
+    }
+    val tasksViewModel = remember(taskRepo) {
+        TasksViewModel(taskRepo)
+    }
+    val notesViewModel = remember(noteRepo) {
+        NotesViewModel(noteRepo)
     }
 
     // Handle Android system Back key
@@ -257,6 +277,9 @@ fun MainDashboardShell(
                                     onSessionChanged(currentSessionState)
                                 }
                                 selectedCategory = item.id
+                                if (item.id in listOf("Магазины", "Парки", "Кафе", "Рестораны")) {
+                                    placesViewModel.selectCategoryByName(item.id)
+                                }
                                 scope.launch { drawerState.close() }
                             },
                             colors = NavigationDrawerItemDefaults.colors(
@@ -358,6 +381,18 @@ fun MainDashboardShell(
                             IconButton(onClick = { purchasesViewModel.openAddProduct() }) {
                                 Text("+", fontSize = 24.sp, color = PaperForeground)
                             }
+                        } else if (selectedCategory in listOf("Магазины", "Парки", "Кафе", "Рестораны")) {
+                            IconButton(onClick = { placesViewModel.openAddPlace() }) {
+                                Text("+", fontSize = 24.sp, color = PaperForeground)
+                            }
+                        } else if (selectedCategory == "Задачи") {
+                            IconButton(onClick = { tasksViewModel.openAddTask() }) {
+                                Text("+", fontSize = 24.sp, color = PaperForeground)
+                            }
+                        } else if (selectedCategory == "Заметки") {
+                            IconButton(onClick = { notesViewModel.openAddNote() }) {
+                                Text("+", fontSize = 24.sp, color = PaperForeground)
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -381,10 +416,12 @@ fun MainDashboardShell(
                     ) {
                         Button(
                             onClick = {
-                                if (selectedCategory == "Покупки") {
-                                    purchasesViewModel.openAddProduct()
-                                } else {
-                                    showQuickAddDialog = true
+                                when (selectedCategory) {
+                                    "Покупки" -> purchasesViewModel.openAddProduct()
+                                    in listOf("Магазины", "Парки", "Кафе", "Рестораны") -> placesViewModel.openAddPlace()
+                                    "Задачи" -> tasksViewModel.openAddTask()
+                                    "Заметки" -> notesViewModel.openAddNote()
+                                    else -> showQuickAddDialog = true
                                 }
                             },
                             shape = RoundedCornerShape(13.dp),
@@ -421,6 +458,24 @@ fun MainDashboardShell(
                     "Покупки" -> {
                         PurchasesScreen(
                             viewModel = purchasesViewModel,
+                        )
+                    }
+
+                    "Магазины", "Парки", "Кафе", "Рестораны" -> {
+                        PlacesScreen(
+                            viewModel = placesViewModel,
+                        )
+                    }
+
+                    "Задачи" -> {
+                        TasksScreen(
+                            viewModel = tasksViewModel,
+                        )
+                    }
+
+                    "Заметки" -> {
+                        NotesScreen(
+                            viewModel = notesViewModel,
                         )
                     }
 
@@ -528,7 +583,22 @@ fun MainDashboardShell(
                     Button(
                         onClick = {
                             showQuickAddDialog = false
-                            selectedCategory = "Главная"
+                            selectedCategory = "Магазины"
+                            placesViewModel.openAddPlace()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
+                        border = BorderStroke(1.dp, PaperOutline),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("📍 Место (магазин, парк, кафе...)", color = PaperForeground)
+                    }
+
+                    Button(
+                        onClick = {
+                            showQuickAddDialog = false
+                            selectedCategory = "Задачи"
+                            tasksViewModel.openAddTask()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
                         border = BorderStroke(1.dp, PaperOutline),
@@ -536,6 +606,20 @@ fun MainDashboardShell(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("✓ Дело в план на день", color = PaperForeground)
+                    }
+
+                    Button(
+                        onClick = {
+                            showQuickAddDialog = false
+                            selectedCategory = "Заметки"
+                            notesViewModel.openAddNote()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
+                        border = BorderStroke(1.dp, PaperOutline),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("✎ Текстовая заметка", color = PaperForeground)
                     }
                 }
             },

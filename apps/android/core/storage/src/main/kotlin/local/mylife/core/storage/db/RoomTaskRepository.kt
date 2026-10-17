@@ -38,6 +38,7 @@ class RoomTaskRepository(
         val openTasks = getOpenTasks()
         val next = openTasks.minByOrNull { it.dueAtEpochMs ?: Long.MAX_VALUE }
         return DashboardSummary(
+            focusTask = next,
             nextTask = next,
             openTasksCount = openTasks.size,
         )

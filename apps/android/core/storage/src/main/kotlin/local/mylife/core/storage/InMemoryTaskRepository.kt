@@ -38,6 +38,7 @@ class InMemoryTaskRepository : TaskRepository, DashboardRepository {
         val open = getOpenTasks()
         val next = open.minByOrNull { it.dueAtEpochMs ?: Long.MAX_VALUE }
         return DashboardSummary(
+            focusTask = next,
             nextTask = next,
             openTasksCount = open.size,
         )

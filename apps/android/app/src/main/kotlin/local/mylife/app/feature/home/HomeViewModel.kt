@@ -7,8 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import local.mylife.core.model.DashboardRepository
+import local.mylife.core.model.Place
 import local.mylife.core.model.Product
-import local.mylife.core.model.ProductRepository
+import local.mylife.core.model.RecentRecord
+import local.mylife.core.model.ReminderItem
 import local.mylife.core.model.TaskItem
 import local.mylife.core.model.TaskRepository
 import java.text.SimpleDateFormat
@@ -19,15 +22,21 @@ data class HomeUiState(
     val nearestTask: TaskItem? = null,
     val remainingTasks: List<TaskItem> = emptyList(),
     val recentPurchases: List<Product> = emptyList(),
+    val recentVisits: List<Place> = emptyList(),
+    val recentRecords: List<RecentRecord> = emptyList(),
+    val activeReminders: List<ReminderItem> = emptyList(),
     val currentDateText: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
 )
 
 class HomeViewModel(
+    private val dashboardRepository: DashboardRepository,
     private val taskRepository: TaskRepository,
-    private val productRepository: ProductRepository,
+    private val externalScope: kotlinx.coroutines.CoroutineScope? = null,
 ) : ViewModel() {
+
+    private val scope get() = externalScope ?: viewModelScope
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -44,26 +53,17 @@ class HomeViewModel(
     }
 
     fun loadDashboardData() {
-        viewModelScope.launch {
+        scope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             try {
-                val openTasks = taskRepository.getOpenTasks()
-                val sortedTasks = openTasks.sortedWith(
-                    compareBy<TaskItem> { it.dueAtEpochMs ?: Long.MAX_VALUE }
-                        .thenByDescending { it.priority.ordinal },
-                )
-
-                val nearest = sortedTasks.firstOrNull()
-                val remaining = if (sortedTasks.size > 1) sortedTasks.drop(1) else emptyList()
-
-                val products = productRepository.getProducts(includeArchived = false)
-                val recentProducts = products.take(3)
-
+                val summary = dashboardRepository.getDashboardSummary()
                 _uiState.update {
                     it.copy(
-                        nearestTask = nearest,
-                        remainingTasks = remaining,
-                        recentPurchases = recentProducts,
+                        nearestTask = summary.focusTask,
+                        remainingTasks = summary.remainingTasks,
+                        recentVisits = summary.recentVisits,
+                        recentRecords = summary.recentRecords,
+                        activeReminders = summary.activeReminders,
                         isLoading = false,
                     )
                 }
@@ -74,7 +74,7 @@ class HomeViewModel(
     }
 
     fun markTaskDone(taskId: String) {
-        viewModelScope.launch {
+        scope.launch {
             try {
                 taskRepository.markTaskDone(taskId)
                 loadDashboardData()
@@ -85,7 +85,7 @@ class HomeViewModel(
     }
 
     fun createQuickTask(title: String, description: String = "") {
-        viewModelScope.launch {
+        scope.launch {
             try {
                 val task = TaskItem(
                     id = java.util.UUID.randomUUID().toString(),

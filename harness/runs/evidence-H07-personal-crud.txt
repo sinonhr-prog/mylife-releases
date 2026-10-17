@@ -1,0 +1,26 @@
+Evidence for required check: personal-crud
+Phase: H07 (Места, заметки, задачи и живой дашборд)
+Command: .\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.places.PlaceFlowTest --tests local.mylife.app.feature.tasks.TaskFlowTest --tests local.mylife.app.feature.notes.NoteFlowTest
+ObservedAt: 2026-10-17T13:19:45Z
+ExitCode: 0
+
+Tests executed:
+- PlaceFlowTest:
+  * testPredefinedCategories_LoadedOnInit: PASS
+  * testPlaceCRUD_CreateFilterSearchDelete: PASS
+  * testPlaceValidation_LengthsAndRatingsAndDates: PASS
+  * testPlaceAttachments_AddAndRetrieve: PASS
+  * testCategoryIntegrity_DeleteCategoryPreservesPlacesAndMovesToDefault: PASS
+- TaskFlowTest:
+  * testTaskCRUD_CreateEditCompleteDelete: PASS
+  * testTaskOrder_StrictSpecification: PASS
+  * testTaskSearch_ByTitleAndDescription: PASS
+  * testTaskValidation_TitleRequirements: PASS
+  * testDraftTask_SavedAndRestored: PASS
+- NoteFlowTest:
+  * testNoteCRUD_CreateEditFavoriteDelete: PASS
+  * testNoteSearch_ByTitleAndBody: PASS
+  * testNoteValidation_TitleAndBodyLimits: PASS
+  * testDraftNote_SavedAndRestored: PASS
+
+Result: 14/14 unit tests passed. Offline and process-death safe. PASS

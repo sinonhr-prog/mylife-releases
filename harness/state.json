@@ -63,6 +63,15 @@
       "sourceDigest": "cac6a1409044292589c12fee39fa3eab29f1b5b88336c0fd6612e6e6c29fadd6",
       "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
       "closedAt": "2026-10-17T11:59:41.345Z"
+    },
+    {
+      "phase": "H07",
+      "runId": "20261017-125500-gemini-h07",
+      "reportPath": "harness/runs/20261017-125500-gemini-h07.json",
+      "reportSha256": "87cada428e95e17f285522927ee96d5d35fada521c7ccd152625f767d8de925b",
+      "sourceDigest": "1d1b34eb2019efc6d1c2a38edc78b3e749324c2409fa2ec61357e04119170237",
+      "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+      "closedAt": "2026-10-17T13:22:49.105Z"
     }
   ]
 }

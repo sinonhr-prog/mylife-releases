@@ -1,0 +1,14 @@
+Evidence for required check: dashboard-isolation
+Phase: H07 (Места, заметки, задачи и живой дашборд)
+Command: .\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.dashboard.DashboardFlowTest.testDashboardIsolation_VaultAndArchivedStrictlyExcluded
+ObservedAt: 2026-10-17T13:20:20Z
+ExitCode: 0
+
+Tests executed:
+- testDashboardIsolation_VaultAndArchivedStrictlyExcluded: PASS
+  * Vault repository and entries are completely isolated from DashboardRepository.
+  * Archived products (archivedAtEpochMs != null) strictly excluded from recentRecords.
+  * Active purchases count reflects only non-archived items.
+  * Only active domain items (places, notes, tasks, non-archived products) enter recent records.
+
+Result: 1/1 tests passed. Vault and archive isolation strictly verified. PASS

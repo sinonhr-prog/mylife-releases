@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,14 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.ui.graphics.Color
-import local.mylife.app.feature.purchases.ProductCard
 import local.mylife.core.designsystem.components.FocusCard
 import local.mylife.core.designsystem.components.FocusEmptyState
 import local.mylife.core.designsystem.components.SectionHeader
@@ -45,6 +44,10 @@ import local.mylife.core.designsystem.theme.PaperForeground
 import local.mylife.core.designsystem.theme.PaperOnSurfaceVariant
 import local.mylife.core.designsystem.theme.PaperOutline
 import local.mylife.core.designsystem.theme.PaperSurface
+import local.mylife.core.model.Place
+import local.mylife.core.model.RecentRecord
+import local.mylife.core.model.RecentRecordType
+import local.mylife.core.model.ReminderItem
 import local.mylife.core.model.TaskItem
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -144,56 +147,179 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        // 4. Section: Покупки
-        SectionHeader(
-            title = "Покупки",
-            actionText = "Все",
-            onActionClick = { onNavigateToCategory("Покупки") },
-        )
-
-        if (state.recentPurchases.isNotEmpty()) {
-            state.recentPurchases.forEach { product ->
-                ProductCard(
-                    product = product,
-                    onClick = { onNavigateToCategory("Покупки") },
-                    onToggleFavorite = {},
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-        } else {
-            FocusEmptyState(
-                title = "Покупок пока нет",
-                description = "Сохраняйте покупки с фотографиями и оценкой эксплуатации.",
-                actionText = "+ Добавить покупку",
-                onActionClick = { onNavigateToCategory("Покупки") },
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // 5. Section: Напоминания (honestly empty until reminders phase)
+        // 4. Section: Напоминания
         SectionHeader(
             title = "Напоминания",
             actionText = "Все",
             onActionClick = { onNavigateToCategory("Напоминания") },
         )
-        FocusEmptyState(
-            title = "Нет активных напоминаний",
-            description = "Локальные напоминания без облачных сервисов.",
-        )
+
+        if (state.activeReminders.isNotEmpty()) {
+            state.activeReminders.forEach { reminder ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PaperOutline),
+                    colors = CardDefaults.cardColors(containerColor = PaperSurface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToCategory("Напоминания") },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text("🔔", fontSize = 18.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = reminder.title,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = PaperForeground,
+                            )
+                            val fireStr = SimpleDateFormat("d MMMM · HH:mm", Locale("ru")).format(Date(reminder.fireEpochMs))
+                            Text(
+                                text = fireStr,
+                                fontSize = 11.sp,
+                                color = PaperOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+        } else {
+            FocusEmptyState(
+                title = "Нет активных напоминаний",
+                description = "Локальные напоминания без облачных сервисов.",
+            )
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 6. Section: Недавно посетил (honestly empty until places phase)
+        // 5. Section: Недавно посетил
         SectionHeader(
             title = "Недавно посетил",
             actionText = "Все",
             onActionClick = { onNavigateToCategory("Места") },
         )
-        FocusEmptyState(
-            title = "Места пока не добавлены",
-            description = "Отмечайте любимые парки, кафе и заведения вручную.",
+
+        if (state.recentVisits.isNotEmpty()) {
+            state.recentVisits.forEach { place ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PaperOutline),
+                    colors = CardDefaults.cardColors(containerColor = PaperSurface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToCategory("Места") },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text("📍", fontSize = 20.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = place.name,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = PaperForeground,
+                            )
+                            val visitedText = place.lastVisitedAtEpochMs?.let {
+                                "Посетил " + SimpleDateFormat("d MMMM", Locale("ru")).format(Date(it))
+                            } ?: place.addressText.ifBlank { "Без адреса" }
+                            Text(
+                                text = visitedText,
+                                fontSize = 12.sp,
+                                color = PaperOnSurfaceVariant,
+                            )
+                        }
+                        place.rating?.let { r ->
+                            Text(
+                                text = "★ $r/10",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = PaperForeground,
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+        } else {
+            FocusEmptyState(
+                title = "Места пока не добавлены",
+                description = "Отмечайте любимые парки, кафе и заведения вручную.",
+                actionText = "+ Добавить место",
+                onActionClick = { onNavigateToCategory("Места") },
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 6. Section: Последние записи
+        SectionHeader(
+            title = "Последние записи",
+            actionText = "Все",
+            onActionClick = { onNavigateToCategory("Записи") },
         )
+
+        if (state.recentRecords.isNotEmpty()) {
+            state.recentRecords.forEach { record ->
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PaperOutline),
+                    colors = CardDefaults.cardColors(containerColor = PaperSurface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val route = when (record.type) {
+                                RecentRecordType.PURCHASE -> "Покупки"
+                                RecentRecordType.PLACE -> "Места"
+                                RecentRecordType.NOTE -> "Заметки"
+                                RecentRecordType.TASK -> "Задачи"
+                            }
+                            onNavigateToCategory(route)
+                        },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        val (icon, typeLabel) = when (record.type) {
+                            RecentRecordType.PURCHASE -> "🛍" to "Покупка"
+                            RecentRecordType.PLACE -> "📍" to "Место"
+                            RecentRecordType.NOTE -> "✎" to "Заметка"
+                            RecentRecordType.TASK -> "✓" to "Задача"
+                        }
+                        Text(icon, fontSize = 18.sp)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = record.title,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = PaperForeground,
+                            )
+                            val dateStr = SimpleDateFormat("d MMMM · HH:mm", Locale("ru")).format(Date(record.createdAtEpochMs))
+                            Text(
+                                text = "$typeLabel · $dateStr",
+                                fontSize = 11.sp,
+                                color = PaperOnSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+        } else {
+            FocusEmptyState(
+                title = "Записей пока нет",
+                description = "Создавайте заметки, задачи, места и сохраняйте покупки.",
+            )
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
     }

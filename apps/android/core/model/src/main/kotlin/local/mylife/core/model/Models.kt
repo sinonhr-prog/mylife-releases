@@ -171,13 +171,45 @@ data class VaultEntry(
     }
 }
 
+@Serializable
+enum class RecentRecordType {
+    PURCHASE,
+    PLACE,
+    NOTE,
+    TASK,
+}
+
+@Serializable
+data class RecentRecord(
+    val id: String,
+    val title: String,
+    val type: RecentRecordType,
+    val createdAtEpochMs: Long,
+)
+
 data class DashboardSummary(
-    val nextTask: TaskItem? = null,
+    val focusTask: TaskItem? = null,
+    val remainingTasks: List<TaskItem> = emptyList(),
+    val recentVisits: List<Place> = emptyList(),
+    val recentRecords: List<RecentRecord> = emptyList(),
+    val activeReminders: List<ReminderItem> = emptyList(),
     val openTasksCount: Int = 0,
     val remindersCount: Int = 0,
     val recentPlacesCount: Int = 0,
     val recentPurchasesCount: Int = 0,
+    val nextTask: TaskItem? = focusTask,
 )
+
+object DefaultCategories {
+    val SHOPS = Category("cat_shops", "Магазины", CategoryKind.PLACE, "store", 1)
+    val PARKS = Category("cat_parks", "Парки", CategoryKind.PLACE, "tree", 2)
+    val CAFES = Category("cat_cafes", "Кафе", CategoryKind.PLACE, "coffee", 3)
+    val RESTAURANTS = Category("cat_restaurants", "Рестораны", CategoryKind.PLACE, "meal", 4)
+    val PURCHASES = Category("cat_purchases", "Покупки", CategoryKind.PRODUCT, "bag", 0)
+    val DEFAULT_PURCHASES = Category("default_purchases", "Покупки", CategoryKind.PRODUCT, "bag", 0)
+
+    val PRESET_CATEGORIES = listOf(SHOPS, PARKS, CAFES, RESTAURANTS, PURCHASES, DEFAULT_PURCHASES)
+}
 
 // --- Repository Interfaces ---
 
@@ -186,6 +218,7 @@ interface CategoryRepository {
     suspend fun getCategoryById(id: String): Category?
     suspend fun saveCategory(category: Category)
     suspend fun deleteCategory(id: String)
+    suspend fun ensureDefaultCategories() {}
 }
 
 interface ProductRepository {
@@ -195,6 +228,7 @@ interface ProductRepository {
     suspend fun deleteProduct(id: String)
     suspend fun getProductAttachments(productId: String): List<AttachmentMeta> = emptyList()
     suspend fun addProductAttachment(productId: String, attachment: AttachmentMeta) {}
+    suspend fun updateCategoryForProducts(oldCategoryId: String, newCategoryId: String) {}
 }
 
 interface PlaceRepository {
@@ -202,6 +236,9 @@ interface PlaceRepository {
     suspend fun getPlaceById(id: String): Place?
     suspend fun savePlace(place: Place)
     suspend fun deletePlace(id: String)
+    suspend fun getPlaceAttachments(placeId: String): List<AttachmentMeta> = emptyList()
+    suspend fun addPlaceAttachment(placeId: String, attachment: AttachmentMeta) {}
+    suspend fun updateCategoryForPlaces(oldCategoryId: String, newCategoryId: String) {}
 }
 
 interface NoteRepository {

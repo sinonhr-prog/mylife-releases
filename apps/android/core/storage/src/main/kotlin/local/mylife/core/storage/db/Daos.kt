@@ -23,6 +23,9 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(category: CategoryEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(categories: List<CategoryEntity>)
+
     @Delete
     suspend fun delete(category: CategoryEntity)
 
@@ -49,6 +52,9 @@ interface ProductDao {
 
     @Query("DELETE FROM products WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("UPDATE products SET categoryId = :newCategoryId WHERE categoryId = :oldCategoryId")
+    suspend fun updateCategory(oldCategoryId: String, newCategoryId: String)
 
     @Query("SELECT a.* FROM attachments a INNER JOIN product_attachments pa ON a.id = pa.attachmentId WHERE pa.productId = :productId ORDER BY pa.position ASC")
     suspend fun getAttachmentsForProduct(productId: String): List<AttachmentEntity>
@@ -79,6 +85,18 @@ interface PlaceDao {
 
     @Query("DELETE FROM places WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("UPDATE places SET categoryId = :newCategoryId WHERE categoryId = :oldCategoryId")
+    suspend fun updateCategory(oldCategoryId: String, newCategoryId: String)
+
+    @Query("SELECT a.* FROM attachments a INNER JOIN place_attachments pa ON a.id = pa.attachmentId WHERE pa.placeId = :placeId ORDER BY pa.position ASC")
+    suspend fun getAttachmentsForPlace(placeId: String): List<AttachmentEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPlaceAttachmentCrossRef(crossRef: PlaceAttachmentCrossRef)
+
+    @Query("DELETE FROM place_attachments WHERE placeId = :placeId AND attachmentId = :attachmentId")
+    suspend fun deletePlaceAttachmentCrossRef(placeId: String, attachmentId: String)
 }
 
 @Dao
