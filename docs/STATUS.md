@@ -1,8 +1,26 @@
 # Текущий статус
 
-17.10.2026: проектный пакет, Android-код, Wrapper, debug APK, криптографическая подсистема, обновлятор, зашифрованное хранилище Room+SQLCipher и сервис переносимого архива .lifevault существуют. H00, H01, H02, H03, H04 закрыты; H05 (Ранний переносимый архив и восстановление) реализован и проверен. Владелец утвердил **«Бумага / Фокус»**, главную-дашборд, выдвижное меню слева, политику 6-значного PIN, публикацию изменений на GitHub и расширил диапазон до H10.
+17.10.2026: проектный пакет, Android-код, Wrapper, debug APK, криптографическая подсистема, обновлятор, зашифрованное хранилище Room+SQLCipher, сервис переносимого архива .lifevault, и дизайн-система «Бумага / Фокус» с покупками и левым меню существуют. H00, H01, H02, H03, H04, H05 закрыты; H06 (Утверждённый Фокус и покупки) реализован и проверен. Владелец утвердил **«Бумага / Фокус»**, главную-дашборд, выдвижное меню слева, политику 6-значного PIN, публикацию изменений на GitHub и расширил диапазон до H10.
 
-## Реализация H05: Ранний переносимый архив и восстановление — 17.10.2026
+## Реализация H06: Утверждённый Фокус и покупки — 17.10.2026
+
+- RunId `20261017-142500-gemini-h06`, модель `gemini-3.8-flash`, источник `runtime-metadata` / `operator-confirmed`.
+- Реализованы:
+  - `Theme.kt` и `FocusComponents.kt` (`core:designsystem`): палитра «Бумага / Фокус» (`PaperBackground` #FFFFFF, `PaperForeground` #202020, `PaperFocusCardBackground` #202020, `PaperFocusCardForeground` #FFFFFF, `PaperFocusCardSubtext` #D0D0D0, `PaperFocusCardLabel` #AAAAAA), компоненты `FocusCard` (выделенная карточка ближайшего дела), `SectionHeader`, `FocusEmptyState`, `RatingBadge` (1..10).
+  - `MainDashboardShell` в `MainActivity.kt`: выдвижное меню слева по кнопке ☰ со всеми категориями (Главная, Покупки, Магазины, Парки, Кафе, Рестораны, Задачи, Заметки, Напоминания, Сейф, Настройки), полное отсутствие нижних вкладок, навигация BackHandler, изоляция Сейфа с автоблокировкой `lockVault()`.
+  - `StorageSession.kt` (`core:storage`): инкапсуляция Room и DAO внутри storage без утечки Room-моделей в UI, предоставление чистых интерфейсов репозиториев (`ProductRepository`, `TaskRepository`, `EncryptedAttachmentStore`).
+  - `PurchasesViewModel.kt` & `PurchasesScreen.kt`: полный CRUD покупок, валидация полей (непустое название, рейтинг 1..10, неотрицательная цена), локальный поиск по тексту, фильтры (`ALL`, `ACTIVE`, `FAVORITE`, `ARCHIVED`), поддержка зашифрованных фото через Tink Streaming AEAD.
+  - `HomeViewModel.kt` & `HomeScreen.kt`: дашборд с интро «Сначала главное / Остальное успеется», карточка Фокуса с ближайшим делом (или `FocusEmptyState`), секция актуальных задач и последних покупок.
+- Проверки:
+  - `focus-ui` — PASS (токены #FFFFFF/#202020, Focus Card, левый drawer, отсутствие нижних вкладок).
+  - `product-flow` — PASS (`ProductFlowTest`: CRUD, зашифрованное фото, рейтинг 1..10, фильтры, поиск, архив/restore).
+  - `ui-accessibility` — PASS (`ThemeTest` контрастность >15:1 WCAG AAA, touch targets >= 48dp, BackHandler, 320-430dp).
+  - `ui-private` — PASS (внешние ссылки хранятся текстом без network fetch, FLAG_SECURE на PIN/Vault).
+  - `MainActivity.kt` connected AndroidTest — PASS на реальном runtime Android 10 API 29.
+  - `verify-project.mjs` — PASS.
+  - `harness validate` — PASS.
+- Следующий этап: H07 (Места, заметки, задачи и живой дашборд).
+
 
 - RunId `20261017-141500-gemini-h05`, модель `gemini-3.8-flash`, источник `runtime-metadata` / `operator-confirmed`.
 - Реализованы:

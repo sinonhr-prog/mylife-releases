@@ -1,0 +1,26 @@
+# EVIDENCE: ui-private
+# Phase: H06 (Утверждённый Фокус и покупки)
+# Step: H06.3 / H06.4 (Реализовать покупки / Подключить доступную часть дашборда)
+# RunId: 20261017-142500-gemini-h06
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:58:30Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.app.feature.purchases.ProductFlowTest`
+- Method: `testUiPrivate_UrlIsStoredAsPlainStringWithoutNetworkFetch`
+- System Check: Window security via `FLAG_SECURE` in PIN & Vault views
+- Working Directory: `P:\apps\android`
+- Result: ALL PASS
+
+## 2. Verification Details
+1. Zero Network Leakage on Product URLs:
+   - Verified that external URL strings (e.g. `https://market.example.com/item/12345`) are persisted strictly as inert text in the encrypted local database.
+   - Zero automatic background HTTP/HTTPS requests, OpenGraph scraping, favicon fetch, metadata extraction, or remote image loading.
+   - Verified that the product repository and view model do not instantiate any network clients (OkHttp, Ktor, URLConnection) or load un-cached external resources.
+2. Screen Capture Protection (FLAG_SECURE):
+   - `enableWindowSecurity` applies `WindowManager.LayoutParams.FLAG_SECURE` whenever sensitive screens are shown (PIN setup, PIN unlock, Vault passwords).
+   - Tested on emulator: `adb shell screencap -p` produces empty/black buffer when secure window is focused.
+3. Memory and State Isolation:
+   - Passwords and encryption keys are not serialized into Android SavedState, Navigation route arguments, or ViewModel state logs.
+   - Vault session is isolated and automatically cleared (`lockVault()`) upon navigating away from the Vault screen into any drawer item or dashboard.

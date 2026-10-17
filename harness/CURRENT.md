@@ -1,17 +1,17 @@
 # Контекст для следующего запуска
 
-## Текущий запуск: H05 (Ранний переносимый архив и восстановление)
+## Текущий запуск: H06 (Утверждённый Фокус и покупки)
 
-- RunId: `20261017-141500-gemini-h05`, модель `gemini-3.8-flash`.
+- RunId: `20261017-142500-gemini-h06`, модель `gemini-3.8-flash`.
 - Поручение владельца: «Продолжай разработку, после существенных изменений в приложении публикуй все на гитхаб, добавь это правило себе в документацию этого проекта».
-- Выполнены и проверены все 4 шага этапа H05:
-  - H05.1 — Сделать согласованный экспорт: `LifeVaultArchiveService.kt` (magic `LIFEV1\0`, version `0x01`, KDF Argon2id 64 MiB, Tink Streaming AEAD, канонический ZIP с манифестом SHA-256 и ключами БД).
-  - H05.2 — Реализовать безопасный импорт: валидация KDF DoS лимитов, staging, защита от Zip Slip / Path Traversal, проверка манифеста, атомарная замена рабочих файлов, re-wrapping ключей новым 6-значным PIN и целевым Keystore (`targetKeyEnvelopeManager.restoreKeysWithNewPin`).
-  - H05.3 — Проверить все неуспешные ветки: отклонение неверной парольной фразы (BadTag), повреждения шифротекста, усечения, превышения KDF лимитов; сохранность рабочей БД при сбое (`restore-atomic`).
-  - H05.4 — Восстановить на чистом устройстве: полный roundtrip-тест устройства A -> устройство B, совпадение баз и вложений, успешное открытие с новым PIN и независимость от старого Keystore.
+- Выполнены и проверены все 4 шага этапа H06:
+  - H06.1 — Перенести токены и компоненты: `Theme.kt`, `FocusComponents.kt` (`FocusCard`, `SectionHeader`, `FocusEmptyState`, `RatingBadge`), unit-тесты `ThemeTest.kt` (WCAG AAA > 15:1).
+  - H06.2 — Сделать drawer и shell: `MainDashboardShell` в `MainActivity.kt`, левый drawer со всеми категориями (Главная, Покупки, Магазины, Парки, Кафе, Рестораны, Задачи, Заметки, Напоминания, Сейф, Настройки), полное отсутствие нижних вкладок, навигация Back, автоблокировка Сейфа `lockVault()`.
+  - H06.3 — Реализовать покупки: `StorageSession` инкапсулирует Room внутри storage, связи `ProductAttachmentCrossRef`, `PurchasesViewModel` и `PurchasesScreen` с CRUD, поиском, фильтрами, валидацией рейтинга/цены и зашифрованными фото через Tink Streaming AEAD.
+  - H06.4 — Подключить доступную часть дашборда: `HomeViewModel`, `HomeScreen` с интро «Сначала главное», выделенной карточкой ближайшего дела, секцией покупок и честными пустыми состояниями; `ProductFlowTest` (3/3 PASS), `MainActivityTest` на Android 10 API 29 (1/1 PASS).
 - Проверки (Required Checks):
-  - `archive-roundtrip` — PASS (`LifeVaultArchiveServiceTest.testArchiveRoundtrip_FullExportAndRestoreOnCleanDevice`, 1.816s).
-  - `archive-negative` — PASS (тесты неверной фразы, порчи шифротекста, усечения и DoS параметров KDF).
-  - `restore-atomic` — PASS (сбой импорта сохраняет существующие базы и ключи нетронутыми).
-  - `archive-private` — PASS (очистка staging файлов из кэша, zeroization ключей в памяти).
-- Следующий этап: H06 (Главная в стиле «Бумага / Фокус»).
+  - `focus-ui` — PASS (токены #FFFFFF/#202020, Focus Card, левый drawer, отсутствие нижних вкладок).
+  - `product-flow` — PASS (CRUD, зашифрованное фото, рейтинг 1..10, фильтры, поиск, архив/восстановление).
+  - `ui-accessibility` — PASS (WCAG AAA > 15:1, touch target >= 48dp, BackHandler, адаптивность 320-430dp).
+  - `ui-private` — PASS (текстовое хранение URL без сетевых запросов, FLAG_SECURE на PIN/Vault экранах).
+- Следующий этап: H07 (Места, заметки, задачи и живой дашборд).

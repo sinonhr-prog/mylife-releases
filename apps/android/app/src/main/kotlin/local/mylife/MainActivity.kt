@@ -2,15 +2,27 @@ package local.mylife
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -21,8 +33,11 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -32,7 +47,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,8 +59,13 @@ import kotlinx.coroutines.launch
 import local.mylife.app.MyLifeApp
 import local.mylife.app.feature.auth.PinScreen
 import local.mylife.app.feature.auth.PinViewModel
+import local.mylife.app.feature.home.HomeScreen
+import local.mylife.app.feature.home.HomeViewModel
+import local.mylife.app.feature.purchases.PurchasesScreen
+import local.mylife.app.feature.purchases.PurchasesViewModel
 import local.mylife.app.feature.settings.updater.UpdateScreen
 import local.mylife.app.feature.settings.updater.UpdateViewModel
+import local.mylife.core.designsystem.components.FocusEmptyState
 import local.mylife.core.designsystem.theme.MyLifeTheme
 import local.mylife.core.designsystem.theme.PaperBackground
 import local.mylife.core.designsystem.theme.PaperForeground
@@ -50,6 +74,12 @@ import local.mylife.core.designsystem.theme.PaperOutline
 import local.mylife.core.designsystem.theme.PaperSurface
 import local.mylife.core.security.SessionManager
 import local.mylife.core.security.SessionState
+
+data class DrawerItem(
+    val id: String,
+    val title: String,
+    val iconSymbol: String,
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,13 +106,23 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     } else {
-                        MainDashboardScreen(
-                            sessionManager = sessionManager,
-                            updateViewModel = updateViewModel,
-                            onSessionChanged = { currentSessionState = it },
-                            onEnableWindowSecurity = { app.sessionLifecycleManager.enableWindowSecurity(this) },
-                            onDisableWindowSecurity = { app.sessionLifecycleManager.disableWindowSecurity(this) },
-                        )
+                        val mainDbKey = when (val state = currentSessionState) {
+                            is SessionState.MainUnlocked -> state.mainDbKey
+                            is SessionState.VaultUnlocked -> state.mainDbKey
+                            else -> null
+                        }
+
+                        if (mainDbKey != null) {
+                            MainDashboardShell(
+                                mainDbKey = mainDbKey,
+                                app = app,
+                                sessionManager = sessionManager,
+                                updateViewModel = updateViewModel,
+                                onSessionChanged = { currentSessionState = it },
+                                onEnableWindowSecurity = { app.sessionLifecycleManager.enableWindowSecurity(this) },
+                                onDisableWindowSecurity = { app.sessionLifecycleManager.disableWindowSecurity(this) },
+                            )
+                        }
                     }
                 }
             }
@@ -92,8 +132,9 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-@Suppress("FunctionName")
-fun MainDashboardScreen(
+fun MainDashboardShell(
+    mainDbKey: ByteArray,
+    app: MyLifeApp,
     sessionManager: SessionManager,
     updateViewModel: UpdateViewModel? = null,
     onSessionChanged: (SessionState) -> Unit = {},
@@ -104,17 +145,48 @@ fun MainDashboardScreen(
     val scope = rememberCoroutineScope()
     var selectedCategory by remember { mutableStateOf("Главная") }
     var currentSessionState by remember { mutableStateOf(sessionManager.getSessionState()) }
+    var showQuickAddDialog by remember { mutableStateOf(false) }
 
-    // Screen: Настройки -> Обновления
-    if (selectedCategory == "Настройки" && updateViewModel != null) {
-        UpdateScreen(
-            viewModel = updateViewModel,
-            onBack = { selectedCategory = "Главная" },
-        )
-        return
+    // Repositories & ViewModels
+    val storageSession = remember(mainDbKey) { app.container.getStorageSession(mainDbKey) }
+    val productRepo = storageSession.productRepository
+    val taskRepo = storageSession.taskRepository
+    val attachmentStore = storageSession.attachmentStore
+
+    val homeViewModel = remember(taskRepo, productRepo) {
+        HomeViewModel(taskRepo, productRepo)
+    }
+    val purchasesViewModel = remember(productRepo, attachmentStore, mainDbKey) {
+        PurchasesViewModel(productRepo, attachmentStore, mainDbKey)
     }
 
-    // Screen: Сейф (requires VaultUnlocked)
+    // Handle Android system Back key
+    BackHandler(enabled = drawerState.isOpen || selectedCategory != "Главная") {
+        if (drawerState.isOpen) {
+            scope.launch { drawerState.close() }
+        } else {
+            selectedCategory = "Главная"
+        }
+    }
+
+    val primaryDrawerItems = listOf(
+        DrawerItem("Главная", "Главная", "⌂"),
+        DrawerItem("Покупки", "Покупки", "🛍"),
+        DrawerItem("Магазины", "Магазины", "🏪"),
+        DrawerItem("Парки", "Парки", "🌲"),
+        DrawerItem("Кафе", "Кафе", "☕"),
+        DrawerItem("Рестораны", "Рестораны", "🍴"),
+        DrawerItem("Задачи", "Задачи", "✓"),
+        DrawerItem("Заметки", "Заметки", "✎"),
+        DrawerItem("Напоминания", "Напоминания", "🔔"),
+        DrawerItem("Сейф", "Пароли (Сейф)", "🔒"),
+    )
+
+    val secondaryDrawerItems = listOf(
+        DrawerItem("Настройки", "Настройки", "⚙"),
+    )
+
+    // Window security: only active in Vault or PIN
     if (selectedCategory == "Сейф") {
         if (currentSessionState !is SessionState.VaultUnlocked) {
             onEnableWindowSecurity()
@@ -129,20 +201,8 @@ fun MainDashboardScreen(
             return
         }
     } else {
-        // Leaving Vault or in another screen -> clear FLAG_SECURE
         onDisableWindowSecurity()
     }
-
-    val categories = listOf(
-        "Главная",
-        "Покупки",
-        "Места",
-        "Заметки",
-        "Задачи",
-        "Напоминания",
-        "Сейф",
-        "Настройки",
-    )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -150,35 +210,115 @@ fun MainDashboardScreen(
             ModalDrawerSheet(
                 drawerContainerColor = PaperBackground,
                 drawerContentColor = PaperForeground,
+                modifier = Modifier.width(300.dp),
             ) {
-                Text(
-                    text = "Моя жизнь",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PaperForeground,
-                    modifier = Modifier.padding(16.dp),
-                )
+                // Drawer Head
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Моя жизнь",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.5).sp,
+                        color = PaperForeground,
+                    )
+                    IconButton(onClick = { scope.launch { drawerState.close() } }) {
+                        Text("✕", fontSize = 18.sp, color = PaperForeground)
+                    }
+                }
+
                 HorizontalDivider(color = PaperOutline)
                 Spacer(modifier = Modifier.height(8.dp))
-                categories.forEach { category ->
-                    NavigationDrawerItem(
-                        label = { Text(category, color = PaperForeground) },
-                        selected = selectedCategory == category,
-                        onClick = {
-                            if (selectedCategory == "Сейф" && category != "Сейф") {
-                                // Rule: opening menu / leaving vault closes vault session immediately
-                                sessionManager.lockVault()
-                                currentSessionState = sessionManager.getSessionState()
-                                onSessionChanged(currentSessionState)
-                            }
-                            selectedCategory = category
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = PaperBackground,
-                            selectedContainerColor = PaperSurface,
-                        ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    primaryDrawerItems.forEach { item ->
+                        NavigationDrawerItem(
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(item.iconSymbol, fontSize = 16.sp, modifier = Modifier.padding(end = 12.dp))
+                                    Text(item.title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                }
+                            },
+                            selected = selectedCategory == item.id,
+                            onClick = {
+                                if (selectedCategory == "Сейф" && item.id != "Сейф") {
+                                    // Security rule: leaving vault closes vault session
+                                    sessionManager.lockVault()
+                                    currentSessionState = sessionManager.getSessionState()
+                                    onSessionChanged(currentSessionState)
+                                }
+                                selectedCategory = item.id
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = PaperForeground,
+                                selectedTextColor = Color.White,
+                                unselectedContainerColor = PaperBackground,
+                                unselectedTextColor = PaperForeground,
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = PaperOutline, modifier = Modifier.padding(horizontal = 16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    secondaryDrawerItems.forEach { item ->
+                        NavigationDrawerItem(
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(item.iconSymbol, fontSize = 16.sp, modifier = Modifier.padding(end = 12.dp))
+                                    Text(item.title, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                }
+                            },
+                            selected = selectedCategory == item.id,
+                            onClick = {
+                                if (selectedCategory == "Сейф") {
+                                    sessionManager.lockVault()
+                                    currentSessionState = sessionManager.getSessionState()
+                                    onSessionChanged(currentSessionState)
+                                }
+                                selectedCategory = item.id
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = PaperForeground,
+                                selectedTextColor = Color.White,
+                                unselectedContainerColor = PaperBackground,
+                                unselectedTextColor = PaperForeground,
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .padding(horizontal = 12.dp, vertical = 2.dp)
+                                .testTag("drawer_item_${item.id}"),
+                        )
+                    }
+                }
+
+                // Drawer Foot
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                ) {
+                    HorizontalDivider(color = PaperOutline)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Ваше личное пространство.\nДанные хранятся на телефоне.",
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        color = PaperOnSurfaceVariant,
                     )
                 }
             }
@@ -189,7 +329,7 @@ fun MainDashboardScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = selectedCategory,
+                            text = if (selectedCategory == "Главная") "Моя жизнь" else selectedCategory,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = PaperForeground,
@@ -198,20 +338,26 @@ fun MainDashboardScreen(
                     navigationIcon = {
                         IconButton(
                             onClick = {
-                                // Rule: opening menu from vault closes vault session
                                 if (selectedCategory == "Сейф") {
                                     sessionManager.lockVault()
                                     currentSessionState = sessionManager.getSessionState()
                                     onSessionChanged(currentSessionState)
                                 }
                                 scope.launch { drawerState.open() }
-                            }
+                            },
                         ) {
                             Text(
                                 text = "☰",
                                 fontSize = 24.sp,
                                 color = PaperForeground,
                             )
+                        }
+                    },
+                    actions = {
+                        if (selectedCategory == "Покупки") {
+                            IconButton(onClick = { purchasesViewModel.openAddProduct() }) {
+                                Text("+", fontSize = 24.sp, color = PaperForeground)
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -221,108 +367,185 @@ fun MainDashboardScreen(
                     ),
                 )
             },
-            containerColor = PaperBackground,
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (selectedCategory == "Сейф") {
-                    Text(
-                        text = "СЕЙФ (ИЗОЛИРОВАННАЯ СЕССИЯ)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PaperOnSurfaceVariant,
-                        letterSpacing = 1.sp,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = PaperSurface),
-                        modifier = Modifier.fillMaxWidth(),
+            bottomBar = {
+                // Persistent bottom action bar in Paper design (NO TABS!)
+                Surface(
+                    color = PaperBackground,
+                    border = BorderStroke(1.dp, PaperOutline),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Button(
+                            onClick = {
+                                if (selectedCategory == "Покупки") {
+                                    purchasesViewModel.openAddProduct()
+                                } else {
+                                    showQuickAddDialog = true
+                                }
+                            },
+                            shape = RoundedCornerShape(13.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PaperForeground),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                        ) {
                             Text(
-                                text = "Сейф разблокирован",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PaperForeground,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Секреты доступны до закрытия сессии или открытия меню ☰",
+                                text = "+ Добавить запись",
                                 fontSize = 14.sp,
-                                color = PaperOnSurfaceVariant,
-                            )
-                        }
-                    }
-                } else {
-                    // Выделенная карточка: «Ближайшее дело» (Компоновка «Фокус»)
-                    Text(
-                        text = "БЛИЖАЙШЕЕ ДЕЛО",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PaperOnSurfaceVariant,
-                        letterSpacing = 1.sp,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = PaperSurface),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Все дела завершены",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PaperForeground,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Новых запланированных дел нет",
-                                fontSize = 14.sp,
-                                color = PaperOnSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Сводка дашборда
-                    Text(
-                        text = "ОБЗОР",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = PaperOnSurfaceVariant,
-                        letterSpacing = 1.sp,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = PaperSurface),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "Задачи: 0 активных",
-                                fontSize = 14.sp,
-                                color = PaperForeground,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Напоминания: нет сигналов",
-                                fontSize = 14.sp,
-                                color = PaperForeground,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
                             )
                         }
                     }
                 }
+            },
+            containerColor = PaperBackground,
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) {
+                when (selectedCategory) {
+                    "Главная" -> {
+                        HomeScreen(
+                            viewModel = homeViewModel,
+                            onNavigateToCategory = { selectedCategory = it },
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    "Покупки" -> {
+                        PurchasesScreen(
+                            viewModel = purchasesViewModel,
+                        )
+                    }
+
+                    "Настройки" -> {
+                        if (updateViewModel != null) {
+                            UpdateScreen(
+                                viewModel = updateViewModel,
+                                onBack = { selectedCategory = "Главная" },
+                            )
+                        }
+                    }
+
+                    "Сейф" -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                        ) {
+                            Text(
+                                text = "СЕЙФ (ИЗОЛИРОВАННАЯ СЕССИЯ)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PaperOnSurfaceVariant,
+                                letterSpacing = 1.sp,
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = PaperSurface),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Сейф разблокирован",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = PaperForeground,
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Отдельная база данных и сессия активны. При выходе в меню Сейф будет автоматически заблокирован.",
+                                        fontSize = 12.sp,
+                                        color = PaperOnSurfaceVariant,
+                                    )
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            sessionManager.lockVault()
+                                            currentSessionState = sessionManager.getSessionState()
+                                            onSessionChanged(currentSessionState)
+                                            selectedCategory = "Главная"
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, PaperForeground),
+                                    ) {
+                                        Text("Заблокировать сейф", color = PaperForeground)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        // Empty states for categories in progress
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            FocusEmptyState(
+                                title = selectedCategory,
+                                description = "Раздел находится в разработке и будет доступен в следующих этапах.",
+                                actionText = "На главную",
+                                onActionClick = { selectedCategory = "Главная" },
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+
+    // Quick Add Dialog
+    if (showQuickAddDialog) {
+        AlertDialog(
+            onDismissRequest = { showQuickAddDialog = false },
+            title = { Text("Добавить запись", fontWeight = FontWeight.Bold, color = PaperForeground) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            showQuickAddDialog = false
+                            selectedCategory = "Покупки"
+                            purchasesViewModel.openAddProduct()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
+                        border = BorderStroke(1.dp, PaperOutline),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("🛍 Покупка с оценкой и фото", color = PaperForeground)
+                    }
+
+                    Button(
+                        onClick = {
+                            showQuickAddDialog = false
+                            selectedCategory = "Главная"
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PaperSurface),
+                        border = BorderStroke(1.dp, PaperOutline),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("✓ Дело в план на день", color = PaperForeground)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showQuickAddDialog = false }) {
+                    Text("Отмена", color = PaperForeground)
+                }
+            },
+            containerColor = PaperBackground,
+        )
     }
 }

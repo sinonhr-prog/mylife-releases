@@ -193,6 +193,8 @@ interface ProductRepository {
     suspend fun getProductById(id: String): Product?
     suspend fun saveProduct(product: Product)
     suspend fun deleteProduct(id: String)
+    suspend fun getProductAttachments(productId: String): List<AttachmentMeta> = emptyList()
+    suspend fun addProductAttachment(productId: String, attachment: AttachmentMeta) {}
 }
 
 interface PlaceRepository {

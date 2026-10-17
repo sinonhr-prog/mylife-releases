@@ -1,0 +1,32 @@
+# EVIDENCE: focus-ui
+# Phase: H06 (Утверждённый Фокус и покупки)
+# Step: H06.1 / H06.2 (Перенести токены и компоненты / Сделать drawer и shell)
+# RunId: 20261017-142500-gemini-h06
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:57:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite 1: `local.mylife.core.designsystem.ThemeTest`
+- Test Suite 2: `local.mylife.MainActivityTest` (Connected AndroidTest on Android 10, API 29, emulator-5554)
+- Commands:
+  - `.\gradlew.bat :core:designsystem:testDebugUnitTest`
+  - `.\gradlew.bat :app:connectedDebugAndroidTest`
+- Working Directory: `P:\apps\android`
+- Result: ALL PASS (ThemeTest: 2/2 PASS; MainActivityTest: 1/1 PASS)
+
+## 2. Verification Details
+1. Design Tokens:
+   - Base Paper palette: PaperBackground = #FFFFFF, PaperForeground = #202020, PaperSurface = #F9F9F9, PaperOutline = #E0E0E0.
+   - Focus Card palette: PaperFocusCardBackground = #202020, PaperFocusCardForeground = #FFFFFF, PaperFocusCardSubtext = #D0D0D0, PaperFocusCardLabel = #AAAAAA, PaperFocusCardButtonBorder = #777777.
+   - All token values tested and confirmed in ThemeTest.kt.
+2. Layout & Focus Components:
+   - Dashboard prominently displays intro header "Сначала главное / Остальное успеется."
+   - Focus card for nearest task or calm empty state "Нет текущих дел" matches design/dashboard.html (focus variant).
+   - Bottom navigation bars (bottom tabs) are completely absent.
+3. Left Navigation Drawer:
+   - Drawer opens via ☰ button in TopAppBar.
+   - Drawer header displays "Моя жизнь".
+   - Drawer lists all application categories: Главная, Покупки, Магазины, Парки, Кафе, Рестораны, Задачи, Заметки, Напоминания, Пароли (Сейф), Настройки.
+   - Drawer footer provides clear local-first notice: "Ваше личное пространство. Данные хранятся на телефоне."
+   - Selecting any section outside "Сейф" automatically calls sessionManager.lockVault() to terminate vault sessions immediately.

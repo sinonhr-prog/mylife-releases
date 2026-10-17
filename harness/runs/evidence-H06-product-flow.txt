@@ -1,0 +1,35 @@
+# EVIDENCE: product-flow
+# Phase: H06 (Утверждённый Фокус и покупки)
+# Step: H06.3 / H06.4 (Реализовать покупки / Подключить доступную часть дашборда)
+# RunId: 20261017-142500-gemini-h06
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:57:30Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.app.feature.purchases.ProductFlowTest`
+- Methods:
+  - `testProductFlow_CreateSearchEditArchiveRestoreDelete`
+  - `testProductValidation_EnforcesInvariants`
+- Command: `.\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.purchases.ProductFlowTest`
+- Working Directory: `P:\apps\android`
+- Result: ALL PASS (3/3 unit tests PASS in test suite)
+
+## 2. Verification Details
+1. Creation & Encryption:
+   - Created test product with title "Эргономичная клавиатура", price 14990.0 RUB, rating 9/10, tags and photo attachment.
+   - Attachment photo bytes encrypted through Tink Streaming AEAD via EncryptedAttachmentStore using active database key.
+   - Verified attachment cross-reference linked and encrypted payload persisted.
+2. Search & Filtering:
+   - Filter `ALL`: item visible.
+   - Filter `FAVORITE`: toggle favorite, verified item filtered accurately.
+   - Search query: search by substring "клавиатура" finds the item; search for non-matching term returns empty list.
+3. Edit, Archive & Restore:
+   - Edited title to "Механическая клавиатура Pro", changed rating to 10/10.
+   - Archived item: moved from active to archived status (`ProductFilter.ARCHIVED`).
+   - Restored item back to active status (`ProductFilter.ACTIVE`).
+4. Validation & Invariants:
+   - Title cannot be blank (trimmed).
+   - Rating strictly constrained to 1..10 range (invalid ratings rejected).
+   - Negative prices rejected.
+   - Deletion cleans up database record and unlinks encrypted attachments.

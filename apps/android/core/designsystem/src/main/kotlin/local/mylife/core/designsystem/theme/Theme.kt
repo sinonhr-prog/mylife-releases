@@ -13,6 +13,13 @@ val PaperSurface = Color(0xFFF9F9F9)
 val PaperOutline = Color(0xFFE0E0E0)
 val PaperOnSurfaceVariant = Color(0xFF666666)
 
+// Focus Card Specific Tokens
+val PaperFocusCardBackground = Color(0xFF202020)
+val PaperFocusCardForeground = Color(0xFFFFFFFF)
+val PaperFocusCardSubtext = Color(0xFFD0D0D0)
+val PaperFocusCardButtonBorder = Color(0xFF777777)
+val PaperFocusCardLabel = Color(0xFFAAAAAA)
+
 private val PaperColorScheme =
     lightColorScheme(
         primary = PaperAccent,

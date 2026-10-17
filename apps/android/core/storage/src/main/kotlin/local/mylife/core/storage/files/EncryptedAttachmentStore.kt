@@ -164,6 +164,15 @@ class EncryptedAttachmentStore(
         }
     }
 
+    fun loadDecryptedBytes(
+        attachmentRelPath: String,
+        rawFileEncryptionKey: ByteArray,
+    ): ByteArray {
+        val baos = ByteArrayOutputStream()
+        openDecryptedStream(attachmentRelPath, rawFileEncryptionKey, baos)
+        return baos.toByteArray()
+    }
+
     fun deleteAttachmentFiles(meta: AttachmentMeta) {
         val file = File(filesDir, meta.encryptedRelativePath)
         if (file.exists()) file.delete()

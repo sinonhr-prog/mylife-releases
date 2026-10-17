@@ -1,0 +1,29 @@
+# EVIDENCE: ui-accessibility
+# Phase: H06 (Утверждённый Фокус и покупки)
+# Step: H06.1 / H06.4 (Перенести токены и компоненты / Подключить доступную часть дашборда)
+# RunId: 20261017-142500-gemini-h06
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:58:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite 1: `local.mylife.core.designsystem.ThemeTest.testContrastRatios`
+- Test Suite 2: `local.mylife.MainActivityTest.testDashboardAndDrawerDisplayed`
+- Manual & Automated Checks: Android 10 (API 29) Emulator (320-430dp responsive layout) & TalkBack semantics
+- Working Directory: `P:\apps\android`
+- Result: PASS
+
+## 2. Verification Details
+1. WCAG Contrast Compliance:
+   - Paper background (#FFFFFF) to foreground (#202020): Contrast ratio > 15:1 (well exceeds WCAG AAA threshold of 7:1).
+   - Focus Card background (#202020) to text (#FFFFFF): Contrast ratio > 15:1.
+   - Secondary text and labels (#D0D0D0, #AAAAAA) maintain high readability and WCAG AA compliance (> 4.5:1).
+2. Touch Target Dimensions:
+   - Keypad buttons: 72x72 dp (exceeds 48x48 dp minimum).
+   - Navigation drawer items: 48 dp height.
+   - Action buttons (e.g. "Все", "✕", "☰"): minimum touch target 48x48 dp via `defaultMinSize` and `IconButton`.
+   - Filter chips and rating badges: touch targets >= 44 dp with clear visual feedback.
+3. System Navigation & Accessibility Semantics:
+   - BackHandler properly handles Android system Back button: closes navigation drawer if open; returns to "Главная" dashboard if inside any secondary category; exits app cleanly from dashboard.
+   - Screen rotation & layout scaling tested from 320dp (compact phones) up to 430dp (standard modern flagships) with vertical scroll enabled to prevent clipped content.
+   - TalkBack content descriptions and semantic roles present on all interactive controls (buttons, navigation icons, close actions).

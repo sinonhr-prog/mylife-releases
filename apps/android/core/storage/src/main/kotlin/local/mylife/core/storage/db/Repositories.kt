@@ -1,5 +1,6 @@
 package local.mylife.core.storage.db
 
+import local.mylife.core.model.AttachmentMeta
 import local.mylife.core.model.Category
 import local.mylife.core.model.CategoryKind
 import local.mylife.core.model.CategoryRepository
@@ -35,7 +36,10 @@ class RoomCategoryRepository(private val dao: CategoryDao) : CategoryRepository 
     private fun Category.toEntity() = CategoryEntity(id, name, kind, iconKey, sortOrder)
 }
 
-class RoomProductRepository(private val dao: ProductDao) : ProductRepository {
+class RoomProductRepository(
+    private val dao: ProductDao,
+    private val attachmentDao: AttachmentDao? = null,
+) : ProductRepository {
     override suspend fun getProducts(categoryId: String?, includeArchived: Boolean): List<Product> =
         dao.getProducts(categoryId, includeArchived).map { it.toDomain() }
 
@@ -44,6 +48,14 @@ class RoomProductRepository(private val dao: ProductDao) : ProductRepository {
     override suspend fun saveProduct(product: Product) = dao.insert(product.toEntity())
 
     override suspend fun deleteProduct(id: String) = dao.deleteById(id)
+
+    override suspend fun getProductAttachments(productId: String): List<AttachmentMeta> =
+        dao.getAttachmentsForProduct(productId).map { it.toDomain() }
+
+    override suspend fun addProductAttachment(productId: String, attachment: AttachmentMeta) {
+        attachmentDao?.insert(attachment.toEntity())
+        dao.insertProductAttachmentCrossRef(ProductAttachmentCrossRef(productId = productId, attachmentId = attachment.id))
+    }
 
     private fun ProductEntity.toDomain() = Product(
         id = id,
@@ -75,6 +87,28 @@ class RoomProductRepository(private val dao: ProductDao) : ProductRepository {
         archivedAtEpochMs = archivedAtEpochMs,
         createdAtEpochMs = createdAtEpochMs,
         updatedAtEpochMs = updatedAtEpochMs,
+    )
+
+    private fun AttachmentEntity.toDomain() = AttachmentMeta(
+        id = id,
+        encryptedRelativePath = encryptedRelativePath,
+        mimeType = mimeType,
+        sizeBytes = sizeBytes,
+        width = width,
+        height = height,
+        encryptionFormatVersion = encryptionFormatVersion,
+        thumbnailRelativePath = thumbnailRelativePath,
+    )
+
+    private fun AttachmentMeta.toEntity() = AttachmentEntity(
+        id = id,
+        encryptedRelativePath = encryptedRelativePath,
+        mimeType = mimeType,
+        sizeBytes = sizeBytes,
+        width = width,
+        height = height,
+        encryptionFormatVersion = encryptionFormatVersion,
+        thumbnailRelativePath = thumbnailRelativePath,
     )
 }
 

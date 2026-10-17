@@ -49,6 +49,15 @@ interface ProductDao {
 
     @Query("DELETE FROM products WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("SELECT a.* FROM attachments a INNER JOIN product_attachments pa ON a.id = pa.attachmentId WHERE pa.productId = :productId ORDER BY pa.position ASC")
+    suspend fun getAttachmentsForProduct(productId: String): List<AttachmentEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProductAttachmentCrossRef(crossRef: ProductAttachmentCrossRef)
+
+    @Query("DELETE FROM product_attachments WHERE productId = :productId AND attachmentId = :attachmentId")
+    suspend fun deleteProductAttachmentCrossRef(productId: String, attachmentId: String)
 }
 
 @Dao
