@@ -1,0 +1,29 @@
+Run: 20261017-sol-updater-followup; date: 2026-10-17; model: operator-confirmed gpt-6.1-sol.
+Baseline Git HEAD: 0752737. Scope: updater follow-up only, no H07 phase close.
+
+PASS read-only diagnosis: Vivo package local.mylife.debug versionCode=1/versionName=0.1.0.
+PASS UI observation: downloaded APK rejected with version 1 <= installed 1.
+PASS public v0.1.7 download hash equals GitHub update.json: f3be6a0c99d4155dc8a7590ad514e3406c982e400ef5a70382edb1cb941db748.
+Public update.json: versionCode7/versionName0.1.7; aapt2 actual APK: versionCode1/versionName0.1.0/minSdk29.
+PASS apksigner verify: candidate and installed public certificate fingerprints equal; GitHub v0.1.7 certificate differs. No keys read.
+
+PASS node --test .github/scripts/generate-update-manifest.test.mjs: 8 tests, 0 failed/skipped.
+PASS expected-negative CLI: aapt2 generator rejected published APK versus requested 0.1.7/code7 with exit 1 and versionCode mismatch, before output creation.
+PASS positive CLI: generator candidate mylife.apk 0.1.8 8 preview local.mylife.debug produced actual metadata8/0.1.8/minSdk29.
+PASS Gradle :app:testDebugUnitTest :app:assembleDebug :app:lintDebug with quoted -PappVersionCode=8 and -PappVersionName=0.1.8; exit0, BUILD SUCCESSFUL, 1m11s.
+PASS fresh unit execution: :app:cleanTestDebugUnitTest :app:testDebugUnitTest (same version props), exit0. XML: AppContainerTest1, ProductFlowTest3, UpdaterUnitTest6; total10, 0 failures/errors/skipped.
+PASS lint XML: 0 Error issues. Tool warnings about Kotlin Analysis API remain ENV-011.
+PASS DEX inspection: candidate contains release-assets.githubusercontent.com.
+PASS candidate APK version8/name0.1.8 and SHA256: 54fd4b30ff53eac72ae9893ac7b82698afad7aa8d77405680f2103d1dffe804e.
+PASS adb install -r candidate on owner-authorized Vivo, Success. No uninstall/clear data.
+PASS device package after install: code8/name0.1.8. On update screen clicked Check; received UpToDate (installed8 vs metadata7), no allowlist error.
+PASS PID-filtered AndroidRuntime query: 0 matching fatal updater entries. No general logcat saved.
+PASS node scripts/verify-project.mjs: 97 Markdown files, 266 local links; exit0.
+PASS node scripts/harness.mjs validate: 12 phases, 7 completed, exit0. No phase closed in this slice.
+PASS git diff --check and node --check for generator/test: exit0. Git line-ending warnings only.
+
+Initial failures (not hidden): restricted ADB daemon ENV-010; patch path/format DOC-005/006; aapt2 minSdk format BUILD-007; unquoted PowerShell property BUILD-008. All recorded before retries.
+NOT_RUN full GitHub APK update/PackageInstaller, API29 device acceptance in this slice, full security/backup/migration gates, production signing, personal-release/public APK publication.
+BLOCKED git push: rejected before execution by auto-review (public Gradle/CI/internal harness exceeds publication allowlist). No remote update, no CI run for this fix. Do not bypass.
+Initial git add/commit blocked by read-only .git sandbox (ENV-012), not an existing-lock cleanup request.
+No personal records, PIN, vault content, private keys or user DBs read/copied/logged. Only APK binaries and fixed updater UI messages inspected.

@@ -13,8 +13,12 @@ android {
         applicationId = "local.mylife"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt().also {
+            require(it in 1..2100000000) { "appVersionCode must be a positive Android version code" }
+        }
+        versionName = providers.gradleProperty("appVersionName").orElse("0.1.0").get().also {
+            require(it.isNotBlank()) { "appVersionName must not be blank" }
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

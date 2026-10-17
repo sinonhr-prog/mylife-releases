@@ -42,7 +42,9 @@ jobs:
           node-version: 20
 
       - name: Verify repository structure & static checks
-        run: node scripts/verify-project.mjs
+        run: |
+          node scripts/verify-project.mjs
+          node --test .github/scripts/generate-update-manifest.test.mjs
 
       - name: Set up JDK 17 (Eclipse Temurin)
         uses: actions/setup-java@v4
@@ -96,12 +98,12 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "Signing config provided: building release APK"
             echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease -PappVersionCode="${{ steps.version_info.outputs.version_code }}" -PappVersionName="${{ steps.version_info.outputs.version_name }}"
             APK_SRC="app/build/outputs/apk/release/app-release.apk"
             APP_ID="local.mylife"
           else
             echo "No signing secret configured: building debug APK for distribution"
-            ./gradlew assembleDebug
+            ./gradlew assembleDebug -PappVersionCode="${{ steps.version_info.outputs.version_code }}" -PappVersionName="${{ steps.version_info.outputs.version_name }}"
             APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
             APP_ID="local.mylife.debug"
           fi
@@ -114,6 +116,7 @@ jobs:
           mkdir -p release_assets
           cp "${APK_SRC}" release_assets/mylife.apk
           
+          export AAPT2_PATH="$ANDROID_HOME/build-tools/35.0.0/aapt2"
           node .github/scripts/generate-update-manifest.mjs \
             release_assets/mylife.apk \
             "${{ steps.version_info.outputs.version_name }}" \
@@ -132,7 +135,8 @@ jobs:
           retention-days: 14
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.force_release == 'true' || github.event_name == 'push'
+        # CI debug keys cannot update an existing installation. Keep debug builds as artifacts.
+        if: env.APP_ID == 'local.mylife' && (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.force_release == 'true' || github.event_name == 'push')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
