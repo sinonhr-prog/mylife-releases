@@ -10,3 +10,5 @@
 
 Проверенная unit-команда: `./gradlew.bat :core:designsystem:testDebugUnitTest` для Android-модуля; для чистого model — `:core:model:test`. В Windows тесты прошли через временный ASCII-путь; подробности в toolchain.md корня проекта. Команды выполняются из apps/android. Проверки app и общий lint — в родительском README.
 
+
+H10: общие кнопки Focus имеют minHeight48dp. Приложение сохраняет белый/графитовый стиль, системную типографику, прокрутку больших форм и адаптивную высоту действий. Реальная проверка320dp/200% находится в app VaultLayoutTest; unit ThemeTest не заменяет UI acceptance.

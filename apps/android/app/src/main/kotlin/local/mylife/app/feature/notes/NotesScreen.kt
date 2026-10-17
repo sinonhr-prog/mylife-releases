@@ -71,15 +71,17 @@ fun NotesScreen(
     val state by viewModel.uiState.collectAsState()
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground),
     ) {
         // 1. Search Bar
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
@@ -88,12 +90,13 @@ fun NotesScreen(
                 placeholder = { Text("Поиск заметок...", color = PaperOnSurfaceVariant) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaperForeground,
-                    unfocusedBorderColor = PaperOutline,
-                    focusedTextColor = PaperForeground,
-                    unfocusedTextColor = PaperForeground,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaperForeground,
+                        unfocusedBorderColor = PaperOutline,
+                        focusedTextColor = PaperForeground,
+                        unfocusedTextColor = PaperForeground,
+                    ),
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
@@ -101,35 +104,39 @@ fun NotesScreen(
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Поле поиска заметок" },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Поле поиска заметок" },
             )
         }
 
         // 2. Filter Chips
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val filters = listOf(
-                NoteFilter.ALL to "Все",
-                NoteFilter.FAVORITES to "★ Избранное",
-            )
+            val filters =
+                listOf(
+                    NoteFilter.ALL to "Все",
+                    NoteFilter.FAVORITES to "★ Избранное",
+                )
             filters.forEach { (filter, title) ->
                 FilterChip(
                     selected = state.filter == filter,
                     onClick = { viewModel.onFilterSelected(filter) },
                     label = { Text(title) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaperForeground,
-                        selectedLabelColor = Color.White,
-                        containerColor = PaperSurface,
-                        labelColor = PaperForeground,
-                    ),
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PaperForeground,
+                            selectedLabelColor = Color.White,
+                            containerColor = PaperSurface,
+                            labelColor = PaperForeground,
+                        ),
                     border = BorderStroke(1.dp, if (state.filter == filter) PaperForeground else PaperOutline),
                     shape = RoundedCornerShape(16.dp),
                 )
@@ -143,18 +150,20 @@ fun NotesScreen(
             }
         } else if (state.filteredNotes.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                val emptyDesc = if (state.searchQuery.isNotBlank()) {
-                    "По запросу «${state.searchQuery}» ничего не найдено."
-                } else if (state.filter == NoteFilter.FAVORITES) {
-                    "Нет избранных заметок."
-                } else {
-                    "Здесь будут мысли, списки и важные тексты."
-                }
+                val emptyDesc =
+                    if (state.searchQuery.isNotBlank()) {
+                        "По запросу «${state.searchQuery}» ничего не найдено."
+                    } else if (state.filter == NoteFilter.FAVORITES) {
+                        "Нет избранных заметок."
+                    } else {
+                        "Здесь будут мысли, списки и важные тексты."
+                    }
                 FocusEmptyState(
                     title = if (state.searchQuery.isNotBlank()) "Ничего не найдено" else "Заметок нет",
                     description = emptyDesc,
@@ -164,9 +173,10 @@ fun NotesScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp),
             ) {
@@ -219,9 +229,10 @@ fun NoteCard(
     onFavoriteClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = PaperSurface),
         border = BorderStroke(1.dp, PaperOutline),
@@ -243,7 +254,7 @@ fun NoteCard(
                 )
                 IconButton(
                     onClick = onFavoriteClick,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(48.dp),
                 ) {
                     Text(
                         text = if (note.isFavorite) "★" else "☆",
@@ -311,9 +322,10 @@ fun NoteDetailsDialog(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
             ) {
                 if (note.body.isNotBlank()) {
                     Text(
@@ -411,9 +423,10 @@ fun AddEditNoteDialog(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 error?.let { Text(it, color = Color(0xFFD32F2F), fontSize = 12.sp) }
@@ -427,10 +440,11 @@ fun AddEditNoteDialog(
                     },
                     label = { Text("Заголовок *") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -444,10 +458,11 @@ fun AddEditNoteDialog(
                     label = { Text("Текст заметки") },
                     minLines = 6,
                     maxLines = 15,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 

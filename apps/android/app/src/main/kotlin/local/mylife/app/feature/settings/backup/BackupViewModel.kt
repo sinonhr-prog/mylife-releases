@@ -20,10 +20,15 @@ import java.util.Locale
 
 sealed class BackupUiState {
     object Idle : BackupUiState()
+
     object InProgress : BackupUiState()
+
     data class ExportSuccess(val filePath: String, val dateText: String) : BackupUiState()
+
     data class InspectSuccess(val manifest: ArchiveManifest) : BackupUiState()
+
     object RestoreSuccess : BackupUiState()
+
     data class Error(val message: String) : BackupUiState()
 }
 
@@ -33,16 +38,17 @@ class BackupViewModel(
     private val vaultDbKey: ByteArray,
     private val keyEnvelopeManager: local.mylife.core.security.crypto.KeyEnvelopeManager? = null,
     private val onRestoreCompleted: () -> Unit = {},
+    private val beforeStorageOperation: () -> Unit = {},
 ) : ViewModel() {
-
     private val _state = MutableStateFlow<BackupUiState>(BackupUiState.Idle)
     val state: StateFlow<BackupUiState> = _state.asStateFlow()
 
-    private val archiveService = LifeVaultArchiveService(
-        appFilesDir = context.filesDir,
-        appDatabasesDir = context.getDatabasePath("main.db").parentFile ?: context.filesDir,
-        cacheDir = context.cacheDir,
-    )
+    private val archiveService =
+        LifeVaultArchiveService(
+            appFilesDir = context.filesDir,
+            appDatabasesDir = context.getDatabasePath("main.db").parentFile ?: context.filesDir,
+            cacheDir = context.cacheDir,
+        )
 
     fun resetState() {
         _state.value = BackupUiState.Idle
@@ -51,7 +57,10 @@ class BackupViewModel(
     /**
      * Создает зашифрованный .lifevault архив с пользовательской ключевой фразой
      */
-    fun createBackup(passphrase: String, targetUri: Uri? = null) {
+    fun createBackup(
+        passphrase: String,
+        targetUri: Uri? = null,
+    ) {
         if (passphrase.length < 8) {
             _state.value = BackupUiState.Error("Ключевая фраза должна содержать не менее 8 символов")
             return
@@ -64,6 +73,7 @@ class BackupViewModel(
                     val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
                     val backupFile = File(context.cacheDir, "mylife_backup_$timestamp.lifevault")
 
+                    beforeStorageOperation()
                     FileOutputStream(backupFile).use { fos ->
                         archiveService.exportArchive(
                             passphrase = passphrase,
@@ -75,7 +85,10 @@ class BackupViewModel(
 
                     // Если указан URI от SAF (USB/диск) — копируем туда
                     if (targetUri != null) {
-                        context.contentResolver.openOutputStream(targetUri)?.use { outStream ->
+                        val target =
+                            context.contentResolver.openOutputStream(targetUri)
+                                ?: throw IllegalStateException("Не удалось открыть место сохранения")
+                        target.use { outStream ->
                             backupFile.inputStream().use { inStream ->
                                 inStream.copyTo(outStream)
                             }
@@ -94,7 +107,10 @@ class BackupViewModel(
     /**
      * Проверяет и считывает манифест архива для подтверждения перед заменой данных
      */
-    fun inspectArchive(archiveUri: Uri, passphrase: String) {
+    fun inspectArchive(
+        archiveUri: Uri,
+        passphrase: String,
+    ) {
         if (passphrase.length < 8) {
             _state.value = BackupUiState.Error("Ключевая фраза должна содержать не менее 8 символов")
             return
@@ -104,12 +120,14 @@ class BackupViewModel(
             _state.value = BackupUiState.InProgress
             withContext(Dispatchers.IO) {
                 try {
-                    val inputStream = context.contentResolver.openInputStream(archiveUri)
-                        ?: throw IllegalStateException("Не удалось открыть файл архива")
+                    val inputStream =
+                        context.contentResolver.openInputStream(archiveUri)
+                            ?: throw IllegalStateException("Не удалось открыть файл архива")
 
-                    val manifest = inputStream.use { stream ->
-                        archiveService.inspectArchive(passphrase, stream)
-                    }
+                    val manifest =
+                        inputStream.use { stream ->
+                            archiveService.inspectArchive(passphrase, stream)
+                        }
 
                     _state.value = BackupUiState.InspectSuccess(manifest)
                 } catch (e: Exception) {
@@ -128,17 +146,20 @@ class BackupViewModel(
         newPin: String,
         newVaultPin: String,
     ) {
-        val envelopeManager = keyEnvelopeManager
-            ?: (context.applicationContext as? local.mylife.app.MyLifeApp)?.container?.keyEnvelopeManager
-            ?: throw IllegalStateException("KeyEnvelopeManager недоступен для восстановления")
+        val envelopeManager =
+            keyEnvelopeManager
+                ?: (context.applicationContext as? local.mylife.app.MyLifeApp)?.container?.keyEnvelopeManager
+                ?: throw IllegalStateException("KeyEnvelopeManager недоступен для восстановления")
 
         viewModelScope.launch {
             _state.value = BackupUiState.InProgress
             withContext(Dispatchers.IO) {
                 try {
-                    val inputStream = context.contentResolver.openInputStream(archiveUri)
-                        ?: throw IllegalStateException("Не удалось открыть файл архива")
+                    val inputStream =
+                        context.contentResolver.openInputStream(archiveUri)
+                            ?: throw IllegalStateException("Не удалось открыть файл архива")
 
+                    beforeStorageOperation()
                     inputStream.use { stream ->
                         archiveService.restoreArchive(
                             passphrase = passphrase,

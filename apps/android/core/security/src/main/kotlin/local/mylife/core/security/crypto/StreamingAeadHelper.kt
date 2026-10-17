@@ -5,6 +5,18 @@ import java.io.InputStream
 import java.io.OutputStream
 
 object StreamingAeadHelper {
+    fun openEncryptingStream(
+        rawKey: ByteArray,
+        output: OutputStream,
+        aad: ByteArray,
+    ): OutputStream = createStreamingCipher(rawKey).newEncryptingStream(output, aad)
+
+    fun openDecryptingStream(
+        rawKey: ByteArray,
+        input: InputStream,
+        aad: ByteArray,
+    ): InputStream = createStreamingCipher(rawKey).newDecryptingStream(input, aad)
+
     private const val HKDF_HASH = "HmacSha256"
     private const val KEY_SIZE_BYTES = 32
     private const val CHUNK_SIZE_BYTES = 4096

@@ -12,7 +12,6 @@ import java.io.File
 class UpdateViewModel(
     private val repository: UpdateRepository,
 ) : ViewModel() {
-
     val state: StateFlow<UpdateState> = repository.state
 
     val currentVersionCode: Int = repository.getCurrentVersionCode()
@@ -30,8 +29,15 @@ class UpdateViewModel(
         }
     }
 
-    fun installUpdate(apkFile: File, info: UpdateInfo) {
+    fun installUpdate(
+        apkFile: File,
+        info: UpdateInfo,
+    ) {
         repository.installUpdate(apkFile, info)
+    }
+
+    fun refreshInstallPermission() {
+        repository.refreshInstallPermission()
     }
 
     fun cancel() {

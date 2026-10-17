@@ -12,11 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,7 +46,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import local.mylife.core.designsystem.components.FocusCard
 import local.mylife.core.designsystem.components.FocusEmptyState
 import local.mylife.core.designsystem.theme.PaperBackground
 import local.mylife.core.designsystem.theme.PaperForeground
@@ -66,9 +66,10 @@ fun RemindersScreen(
     val state by viewModel.uiState.collectAsState()
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground),
     ) {
         if (state.isLoading && state.reminders.isEmpty()) {
             Box(
@@ -79,9 +80,10 @@ fun RemindersScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
@@ -106,7 +108,7 @@ fun RemindersScreen(
                     item {
                         FocusEmptyState(
                             title = "Напоминаний нет",
-                            description = "Создайте сигнал для важного дела или встречи. Уведомление появится вовремя даже при выключенном экране.",
+                            description = "Создайте сигнал для важного дела или встречи. Доставка зависит от разрешений и энергосбережения телефона.",
                             actionText = "+ Запланировать напоминание",
                             onActionClick = { viewModel.openAddReminder() },
                             modifier = Modifier.padding(vertical = 32.dp),
@@ -228,15 +230,17 @@ fun ReminderCardItem(
     onDelete: () -> Unit,
 ) {
     val dateFormat = remember { SimpleDateFormat("d MMMM yyyy, HH:mm", Locale("ru")) }
-    val formattedDate = remember(reminder.fireEpochMs) {
-        dateFormat.format(Date(reminder.fireEpochMs))
-    }
+    val formattedDate =
+        remember(reminder.fireEpochMs) {
+            dateFormat.format(Date(reminder.fireEpochMs))
+        }
 
-    val repeatText = when (reminder.repeat) {
-        ReminderRepeat.ONCE -> "Однократно"
-        ReminderRepeat.DAILY -> "Каждый день"
-        ReminderRepeat.WEEKLY -> "Каждую неделю"
-    }
+    val repeatText =
+        when (reminder.repeat) {
+            ReminderRepeat.ONCE -> "Однократно"
+            ReminderRepeat.DAILY -> "Каждый день"
+            ReminderRepeat.WEEKLY -> "Каждую неделю"
+        }
 
     val isPast = reminder.fireEpochMs < System.currentTimeMillis() && reminder.repeat == ReminderRepeat.ONCE
 
@@ -244,15 +248,17 @@ fun ReminderCardItem(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = PaperSurface),
         border = BorderStroke(1.dp, PaperOutline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit)
-            .testTag("reminder_item_${reminder.id}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEdit)
+                .testTag("reminder_item_${reminder.id}"),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -297,12 +303,13 @@ fun ReminderCardItem(
                 Switch(
                     checked = reminder.isEnabled && !isPast,
                     onCheckedChange = { onToggle() },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = PaperForeground,
-                        uncheckedThumbColor = PaperOnSurfaceVariant,
-                        uncheckedTrackColor = PaperOutline,
-                    ),
+                    colors =
+                        SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PaperForeground,
+                            uncheckedThumbColor = PaperOnSurfaceVariant,
+                            uncheckedTrackColor = PaperOutline,
+                        ),
                     modifier = Modifier.testTag("reminder_switch_${reminder.id}"),
                 )
 
@@ -344,7 +351,7 @@ fun ReminderEditDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (errorMessage != null) {
                     Text(errorMessage, color = Color(0xFFC0392B), fontSize = 12.sp)
                 }
@@ -383,19 +390,21 @@ fun ReminderEditDialog(
                         val isSelected = repeat == r
                         OutlinedButton(
                             onClick = { repeat = r },
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (isSelected) PaperForeground else PaperSurface,
-                                contentColor = if (isSelected) Color.White else PaperForeground,
-                            ),
+                            colors =
+                                ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSelected) PaperForeground else PaperSurface,
+                                    contentColor = if (isSelected) Color.White else PaperForeground,
+                                ),
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, if (isSelected) PaperForeground else PaperOutline),
                         ) {
                             Text(
-                                text = when (r) {
-                                    ReminderRepeat.ONCE -> "1 раз"
-                                    ReminderRepeat.DAILY -> "Каждый день"
-                                    ReminderRepeat.WEEKLY -> "Каждую неделю"
-                                },
+                                text =
+                                    when (r) {
+                                        ReminderRepeat.ONCE -> "1 раз"
+                                        ReminderRepeat.DAILY -> "Каждый день"
+                                        ReminderRepeat.WEEKLY -> "Каждую неделю"
+                                    },
                                 fontSize = 11.sp,
                             )
                         }
@@ -446,11 +455,12 @@ fun ReminderEditDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val parsedDate = try {
-                        sdf.parse(dateString.trim())
-                    } catch (e: Exception) {
-                        null
-                    }
+                    val parsedDate =
+                        try {
+                            sdf.parse(dateString.trim())
+                        } catch (e: Exception) {
+                            null
+                        }
                     if (parsedDate == null) {
                         parseError = "Неверный формат даты. Пример: 2026-10-18 14:30"
                         return@Button

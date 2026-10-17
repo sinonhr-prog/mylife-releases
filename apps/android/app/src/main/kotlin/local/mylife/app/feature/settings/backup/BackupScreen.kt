@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -62,37 +59,41 @@ fun BackupScreen(
     var selectedRestoreUri by remember { mutableStateOf<Uri?>(null) }
 
     var showConfirmRestoreDialog by remember { mutableStateOf(false) }
-    var newPinForRestore by remember { mutableStateOf("123456") }
-    var newVaultPinForRestore by remember { mutableStateOf("654321") }
+    var newPinForRestore by remember { mutableStateOf("") }
+    var newVaultPinForRestore by remember { mutableStateOf("") }
 
     // SAF Launchers
-    val createDocLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
-    ) { uri ->
-        if (uri != null) {
-            viewModel.createBackup(exportPassphrase, uri)
+    val createDocLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
+        ) { uri ->
+            if (uri != null) {
+                viewModel.createBackup(exportPassphrase, uri)
+            }
         }
-    }
 
-    val openDocLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            selectedRestoreUri = uri
-            viewModel.inspectArchive(uri, restorePassphrase)
+    val openDocLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri != null) {
+                selectedRestoreUri = uri
+                viewModel.inspectArchive(uri, restorePassphrase)
+            }
         }
-    }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Header
@@ -269,7 +270,7 @@ fun BackupScreen(
                 onDismissRequest = { showConfirmRestoreDialog = false },
                 title = { Text("ВНИМАНИЕ: Замена данных", color = Color(0xFFC0392B), fontWeight = FontWeight.Bold) },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             text = "Восстановление полностью заменит текущие базы данных и вложения на телефоне данными из архива.",
                             fontSize = 13.sp,
@@ -290,7 +291,7 @@ fun BackupScreen(
                         OutlinedTextField(
                             value = newVaultPinForRestore,
                             onValueChange = { if (it.length <= 6 && it.all { c -> c.isDigit() }) newVaultPinForRestore = it },
-                            label = { Text("PIN сейфа (6 цифр)") },
+                            label = { Text("Повторите новый PIN") },
                             singleLine = true,
                         )
                     }
@@ -306,7 +307,7 @@ fun BackupScreen(
                                 newVaultPin = newVaultPinForRestore,
                             )
                         },
-                        enabled = newPinForRestore.length == 6 && newVaultPinForRestore.length == 6,
+                        enabled = newPinForRestore.length == 6 && newVaultPinForRestore == newPinForRestore,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC0392B)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.testTag("confirm_restore_final_button"),

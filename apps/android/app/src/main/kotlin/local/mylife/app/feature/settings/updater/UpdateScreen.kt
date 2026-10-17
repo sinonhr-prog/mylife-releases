@@ -1,6 +1,5 @@
 package local.mylife.app.feature.settings.updater
 
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,13 +55,23 @@ fun UpdateScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, viewModel) {
+        val observer =
+            androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.refreshInstallPermission()
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground)
-            .padding(24.dp)
-            .verticalScroll(scrollState),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground)
+                .padding(24.dp)
+                .verticalScroll(scrollState),
     ) {
         // Шапка раздела
         Row(
@@ -89,12 +99,13 @@ fun UpdateScreen(
 
         // Карточка текущей версии приложения (Бумага / Фокус)
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(PaperSurface)
-                .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
-                .padding(20.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PaperSurface)
+                    .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
+                    .padding(20.dp),
         ) {
             Column {
                 Text(
@@ -137,11 +148,12 @@ fun UpdateScreen(
                 Button(
                     onClick = { viewModel.checkForUpdates() },
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PaperAccent,
-                        contentColor = Color.White,
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = PaperAccent,
+                            contentColor = Color.White,
+                        ),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text("Проверить обновления", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 }
@@ -149,11 +161,12 @@ fun UpdateScreen(
 
             is UpdateState.Checking -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PaperSurface)
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PaperSurface)
+                            .padding(20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -174,12 +187,13 @@ fun UpdateScreen(
 
             is UpdateState.UpToDate -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PaperSurface)
-                        .border(1.dp, PaperOutline, RoundedCornerShape(8.dp))
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PaperSurface)
+                            .border(1.dp, PaperOutline, RoundedCornerShape(8.dp))
+                            .padding(16.dp),
                 ) {
                     Column {
                         Text(
@@ -201,7 +215,7 @@ fun UpdateScreen(
                     onClick = { viewModel.checkForUpdates() },
                     shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PaperOutline),
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text("Проверить снова", color = PaperForeground, fontSize = 14.sp)
                 }
@@ -210,11 +224,12 @@ fun UpdateScreen(
             is UpdateState.UpdateAvailable -> {
                 val info = currentState.info
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PaperForeground)
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PaperForeground)
+                            .padding(20.dp),
                 ) {
                     Column {
                         Row(
@@ -269,11 +284,12 @@ fun UpdateScreen(
                         Button(
                             onClick = { viewModel.downloadUpdate(info) },
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = PaperForeground,
-                            ),
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = Color.White,
+                                    contentColor = PaperForeground,
+                                ),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
                             Text("Скачать обновление", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         }
@@ -283,12 +299,13 @@ fun UpdateScreen(
 
             is UpdateState.Downloading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PaperSurface)
-                        .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PaperSurface)
+                            .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
+                            .padding(20.dp),
                 ) {
                     Column {
                         Text(
@@ -338,12 +355,13 @@ fun UpdateScreen(
 
             is UpdateState.ReadyToInstall -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PaperSurface)
-                        .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PaperSurface)
+                            .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
+                            .padding(20.dp),
                 ) {
                     Column {
                         Text(
@@ -363,11 +381,12 @@ fun UpdateScreen(
                         Button(
                             onClick = { viewModel.installUpdate(currentState.apkFile, currentState.info) },
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PaperAccent,
-                                contentColor = Color.White,
-                            ),
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = PaperAccent,
+                                    contentColor = Color.White,
+                                ),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
                             Text("Установить обновление", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         }
@@ -377,11 +396,12 @@ fun UpdateScreen(
 
             is UpdateState.Installing -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PaperSurface)
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PaperSurface)
+                            .padding(20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -403,12 +423,13 @@ fun UpdateScreen(
             is UpdateState.PermissionRequired -> {
                 val helper = PackageInstallerHelper(context)
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PaperSurface)
-                        .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PaperSurface)
+                            .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
+                            .padding(20.dp),
                 ) {
                     Column {
                         Text(
@@ -430,11 +451,12 @@ fun UpdateScreen(
                                 context.startActivity(helper.createManageUnknownSourcesIntent())
                             },
                             shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PaperAccent,
-                                contentColor = Color.White,
-                            ),
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = PaperAccent,
+                                    contentColor = Color.White,
+                                ),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         ) {
                             Text("Открыть настройки Android", fontSize = 14.sp)
                         }
@@ -444,12 +466,13 @@ fun UpdateScreen(
 
             is UpdateState.Error -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PaperSurface)
-                        .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
-                        .padding(20.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(PaperSurface)
+                            .border(1.dp, PaperOutline, RoundedCornerShape(12.dp))
+                            .padding(20.dp),
                 ) {
                     Column {
                         Text(
@@ -471,11 +494,12 @@ fun UpdateScreen(
                                 Button(
                                     onClick = { viewModel.checkForUpdates() },
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = PaperAccent,
-                                        contentColor = Color.White,
-                                    ),
-                                    modifier = Modifier.weight(1f).height(44.dp),
+                                    colors =
+                                        ButtonDefaults.buttonColors(
+                                            containerColor = PaperAccent,
+                                            contentColor = Color.White,
+                                        ),
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                                 ) {
                                     Text("Повторить", fontSize = 14.sp)
                                 }
@@ -485,7 +509,7 @@ fun UpdateScreen(
                                 onClick = { viewModel.dismissError() },
                                 shape = RoundedCornerShape(8.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, PaperOutline),
-                                modifier = Modifier.weight(1f).height(44.dp),
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                             ) {
                                 Text("Закрыть", color = PaperForeground, fontSize = 14.sp)
                             }
@@ -499,11 +523,12 @@ fun UpdateScreen(
 
         // Блок информации о безопасности и локальности данных
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(PaperSurface)
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PaperSurface)
+                    .padding(16.dp),
         ) {
             Column {
                 Text(

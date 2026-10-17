@@ -7,7 +7,6 @@ import local.mylife.core.security.crypto.KeyScope
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -18,12 +17,52 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.security.GeneralSecurityException
-import java.security.MessageDigest
-import java.util.Arrays
 
 class LifeVaultArchiveServiceTest {
+    @Test
+    fun testExportNeverCreatesPlaintextStagingWhileStreaming() {
+        val (main, vault) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
+        File(deviceADatabasesDir, "main.db").writeText("SYNTHETIC_DATABASE")
+        val output =
+            object : ByteArrayOutputStream() {
+                override fun write(
+                    bytes: ByteArray,
+                    offset: Int,
+                    length: Int,
+                ) {
+                    assertTrue("No temporary archive or raw keys may reach disk", deviceACacheDir.walkTopDown().none { it.isFile })
+                    super.write(bytes, offset, length)
+                }
+            }
+        deviceAService.exportArchive(validPassphrase, output, main, vault)
+        assertTrue(deviceAService.inspectArchive(validPassphrase, output.toByteArray().inputStream()).files.containsKey("keys/keys.bin"))
+    }
+
+    @Test
+    fun testLateRestoreFailureRollsBackDatabasesAndBothKeyEnvelopes() {
+        val (main, vault) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
+        File(deviceADatabasesDir, "main.db").writeText("NEW_MAIN")
+        File(deviceADatabasesDir, "vault.db").writeText("NEW_VAULT")
+        val output = ByteArrayOutputStream()
+        deviceAService.exportArchive(validPassphrase, output, main, vault)
+        val oldKeys = deviceBEnvelopeManager.setupNewPin(deviceBPin)
+        File(deviceBDatabasesDir, "main.db").writeText("OLD_MAIN")
+        File(deviceBDatabasesDir, "vault.db").writeText("OLD_VAULT")
+        val failingManager =
+            KeyEnvelopeManager(deviceBKeyDir, deviceBKeyProvider, transactionObserver = {
+                if (it == 1) throw java.io.IOException("synthetic late write failure")
+            })
+        try {
+            deviceBService.restoreArchive(validPassphrase, output.toByteArray().inputStream(), "729385", failingManager)
+            fail("Late write must fail")
+        } catch (_: java.io.IOException) {
+        }
+        assertEquals("OLD_MAIN", File(deviceBDatabasesDir, "main.db").readText())
+        assertEquals("OLD_VAULT", File(deviceBDatabasesDir, "vault.db").readText())
+        assertArrayEquals(oldKeys.first, deviceBEnvelopeManager.unlockScope(KeyScope.MAIN, deviceBPin))
+        assertArrayEquals(oldKeys.second, deviceBEnvelopeManager.unlockScope(KeyScope.VAULT, deviceBPin))
+    }
 
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -57,11 +96,12 @@ class LifeVaultArchiveServiceTest {
         deviceAKeyDir = File(rootA, "keys").apply { mkdirs() }
         deviceAKeyProvider = InMemoryDeviceKeyProvider()
         deviceAEnvelopeManager = KeyEnvelopeManager(deviceAKeyDir, deviceAKeyProvider)
-        deviceAService = LifeVaultArchiveService(
-            appFilesDir = deviceAFilesDir,
-            appDatabasesDir = deviceADatabasesDir,
-            cacheDir = deviceACacheDir,
-        )
+        deviceAService =
+            LifeVaultArchiveService(
+                appFilesDir = deviceAFilesDir,
+                appDatabasesDir = deviceADatabasesDir,
+                cacheDir = deviceACacheDir,
+            )
 
         val rootB = tempFolder.newFolder("device_B")
         deviceBFilesDir = File(rootB, "files").apply { mkdirs() }
@@ -70,11 +110,12 @@ class LifeVaultArchiveServiceTest {
         deviceBKeyDir = File(rootB, "keys").apply { mkdirs() }
         deviceBKeyProvider = InMemoryDeviceKeyProvider()
         deviceBEnvelopeManager = KeyEnvelopeManager(deviceBKeyDir, deviceBKeyProvider)
-        deviceBService = LifeVaultArchiveService(
-            appFilesDir = deviceBFilesDir,
-            appDatabasesDir = deviceBDatabasesDir,
-            cacheDir = deviceBCacheDir,
-        )
+        deviceBService =
+            LifeVaultArchiveService(
+                appFilesDir = deviceBFilesDir,
+                appDatabasesDir = deviceBDatabasesDir,
+                cacheDir = deviceBCacheDir,
+            )
     }
 
     // =========================================================================
@@ -85,12 +126,14 @@ class LifeVaultArchiveServiceTest {
         // Setup initial databases & attachments on Device A
         val (originalMainKey, originalVaultKey) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
 
-        val mainDb = File(deviceADatabasesDir, "main.db").apply {
-            writeBytes("SYNTHETIC_SQLCIPHER_MAIN_DATABASE_PAYLOAD_V1".toByteArray())
-        }
-        val vaultDb = File(deviceADatabasesDir, "vault.db").apply {
-            writeBytes("SYNTHETIC_SQLCIPHER_VAULT_DATABASE_PAYLOAD_V1".toByteArray())
-        }
+        val mainDb =
+            File(deviceADatabasesDir, "main.db").apply {
+                writeBytes("SYNTHETIC_SQLCIPHER_MAIN_DATABASE_PAYLOAD_V1".toByteArray())
+            }
+        val vaultDb =
+            File(deviceADatabasesDir, "vault.db").apply {
+                writeBytes("SYNTHETIC_SQLCIPHER_VAULT_DATABASE_PAYLOAD_V1".toByteArray())
+            }
 
         val attachmentsDir = File(deviceAFilesDir, "attachments").apply { mkdirs() }
         val att1 = File(attachmentsDir, "img1.bin").apply { writeBytes("ENCRYPTED_ATTACHMENT_DATA_1".toByteArray()) }
@@ -100,15 +143,16 @@ class LifeVaultArchiveServiceTest {
         val thumb1 = File(thumbsDir, "img1_thumb.bin").apply { writeBytes("ENCRYPTED_THUMBNAIL_DATA_1".toByteArray()) }
 
         // Export archive to memory
-        val archiveBytes = ByteArrayOutputStream().use { baos ->
-            deviceAService.exportArchive(
-                passphrase = validPassphrase,
-                outputStream = baos,
-                mainDbKey = originalMainKey,
-                vaultDbKey = originalVaultKey,
-            )
-            baos.toByteArray()
-        }
+        val archiveBytes =
+            ByteArrayOutputStream().use { baos ->
+                deviceAService.exportArchive(
+                    passphrase = validPassphrase,
+                    outputStream = baos,
+                    mainDbKey = originalMainKey,
+                    vaultDbKey = originalVaultKey,
+                )
+                baos.toByteArray()
+            }
 
         // Validate archive header
         assertTrue(archiveBytes.size > 64)
@@ -173,15 +217,16 @@ class LifeVaultArchiveServiceTest {
         val (mainKey, vaultKey) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
         File(deviceADatabasesDir, "main.db").writeBytes(byteArrayOf(1, 2, 3))
 
-        val archiveBytes = ByteArrayOutputStream().use { baos ->
-            deviceAService.exportArchive(
-                passphrase = validPassphrase,
-                outputStream = baos,
-                mainDbKey = mainKey,
-                vaultDbKey = vaultKey,
-            )
-            baos.toByteArray()
-        }
+        val archiveBytes =
+            ByteArrayOutputStream().use { baos ->
+                deviceAService.exportArchive(
+                    passphrase = validPassphrase,
+                    outputStream = baos,
+                    mainDbKey = mainKey,
+                    vaultDbKey = vaultKey,
+                )
+                baos.toByteArray()
+            }
 
         try {
             ByteArrayInputStream(archiveBytes).use { bais ->
@@ -203,15 +248,16 @@ class LifeVaultArchiveServiceTest {
         val (mainKey, vaultKey) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
         File(deviceADatabasesDir, "main.db").writeBytes(byteArrayOf(1, 2, 3))
 
-        val archiveBytes = ByteArrayOutputStream().use { baos ->
-            deviceAService.exportArchive(
-                passphrase = validPassphrase,
-                outputStream = baos,
-                mainDbKey = mainKey,
-                vaultDbKey = vaultKey,
-            )
-            baos.toByteArray()
-        }
+        val archiveBytes =
+            ByteArrayOutputStream().use { baos ->
+                deviceAService.exportArchive(
+                    passphrase = validPassphrase,
+                    outputStream = baos,
+                    mainDbKey = mainKey,
+                    vaultDbKey = vaultKey,
+                )
+                baos.toByteArray()
+            }
 
         // Flip byte in encrypted payload body
         archiveBytes[archiveBytes.size - 10] = (archiveBytes[archiveBytes.size - 10].toInt() xor 0xFF).toByte()
@@ -237,15 +283,16 @@ class LifeVaultArchiveServiceTest {
         val (mainKey, vaultKey) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
         File(deviceADatabasesDir, "main.db").writeBytes(byteArrayOf(1, 2, 3, 4, 5))
 
-        val archiveBytes = ByteArrayOutputStream().use { baos ->
-            deviceAService.exportArchive(
-                passphrase = validPassphrase,
-                outputStream = baos,
-                mainDbKey = mainKey,
-                vaultDbKey = vaultKey,
-            )
-            baos.toByteArray()
-        }
+        val archiveBytes =
+            ByteArrayOutputStream().use { baos ->
+                deviceAService.exportArchive(
+                    passphrase = validPassphrase,
+                    outputStream = baos,
+                    mainDbKey = mainKey,
+                    vaultDbKey = vaultKey,
+                )
+                baos.toByteArray()
+            }
 
         // Truncate to half
         val truncated = archiveBytes.copyOfRange(0, archiveBytes.size / 2)
@@ -320,9 +367,10 @@ class LifeVaultArchiveServiceTest {
     fun testRestoreAtomic_FailurePreservesExistingData() {
         // Device B already has existing active data
         val (bMainKey, bVaultKey) = deviceBEnvelopeManager.setupNewPin(deviceBPin)
-        val existingDb = File(deviceBDatabasesDir, "main.db").apply {
-            writeBytes("EXISTING_UNTOUCHED_PRODUCTION_DATA".toByteArray())
-        }
+        val existingDb =
+            File(deviceBDatabasesDir, "main.db").apply {
+                writeBytes("EXISTING_UNTOUCHED_PRODUCTION_DATA".toByteArray())
+            }
 
         // Construct a broken archive stream
         val brokenArchive = "NOT_A_VALID_ARCHIVE_DATA".toByteArray()
@@ -358,15 +406,16 @@ class LifeVaultArchiveServiceTest {
         val (mainKey, vaultKey) = deviceAEnvelopeManager.setupNewPin(deviceAPin)
         File(deviceADatabasesDir, "main.db").writeBytes("SECRET_MAIN_DATA".toByteArray())
 
-        val archiveBytes = ByteArrayOutputStream().use { baos ->
-            deviceAService.exportArchive(
-                passphrase = validPassphrase,
-                outputStream = baos,
-                mainDbKey = mainKey,
-                vaultDbKey = vaultKey,
-            )
-            baos.toByteArray()
-        }
+        val archiveBytes =
+            ByteArrayOutputStream().use { baos ->
+                deviceAService.exportArchive(
+                    passphrase = validPassphrase,
+                    outputStream = baos,
+                    mainDbKey = mainKey,
+                    vaultDbKey = vaultKey,
+                )
+                baos.toByteArray()
+            }
 
         // Check Device A cache: must be completely empty or contain no unencrypted files
         val cacheAFiles = deviceACacheDir.listFiles() ?: emptyArray()

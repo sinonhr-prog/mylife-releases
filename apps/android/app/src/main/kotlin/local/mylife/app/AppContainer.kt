@@ -1,6 +1,7 @@
 package local.mylife.app
 
 import android.content.Context
+import kotlinx.coroutines.launch
 import local.mylife.app.feature.settings.updater.DefaultUpdateRepository
 import local.mylife.app.feature.settings.updater.UpdateRepository
 import local.mylife.core.security.DefaultSessionManager
@@ -13,26 +14,54 @@ import java.util.Arrays
 
 interface AppContainer {
     val sessionManager: SessionManager
+
+    fun peekSessionManager(): SessionManager? = null
+
     val keyEnvelopeManager: KeyEnvelopeManager
     val updateRepository: UpdateRepository
+
     fun getStorageSession(mainDbKey: ByteArray): StorageSession
+
     fun closeStorageSession()
+
     fun getVaultStorageSession(vaultDbKey: ByteArray): local.mylife.core.storage.VaultStorageSession
+
     fun closeVaultStorageSession()
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
     override val keyEnvelopeManager: KeyEnvelopeManager by lazy {
         val securityDir = File(context.filesDir, "security")
-        KeyEnvelopeManager(securityDir, AndroidDeviceKeyProvider())
+        KeyEnvelopeManager(securityDir, AndroidDeviceKeyProvider(), transactionRoot = context.dataDir)
     }
 
-    override val sessionManager: SessionManager by lazy {
-        DefaultSessionManager(keyEnvelopeManager)
-    }
+    private val sessionManagerDelegate =
+        lazy {
+            DefaultSessionManager(keyEnvelopeManager) { all ->
+                closeVaultStorageSession()
+                if (all) closeStorageSession()
+            }
+        }
+
+    override val sessionManager: SessionManager get() = sessionManagerDelegate.value
+
+    override fun peekSessionManager(): SessionManager? = if (sessionManagerDelegate.isInitialized()) sessionManagerDelegate.value else null
 
     override val updateRepository: UpdateRepository by lazy {
         DefaultUpdateRepository(context)
+    }
+
+    private val storageCloseScope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO,
+        )
+
+    private fun closeOffMain(close: () -> Unit) {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            storageCloseScope.launch { close() }
+        } else {
+            close()
+        }
     }
 
     private var activeSession: StorageSession? = null
@@ -57,8 +86,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     @Synchronized
     override fun closeStorageSession() {
-        activeSession?.close()
+        val closing = activeSession
         activeSession = null
+        if (closing != null) closeOffMain { closing.close() }
         activeKey?.let { Arrays.fill(it, 0.toByte()) }
         activeKey = null
     }
@@ -78,8 +108,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     @Synchronized
     override fun closeVaultStorageSession() {
-        activeVaultSession?.close()
+        val closing = activeVaultSession
         activeVaultSession = null
+        if (closing != null) closeOffMain { closing.close() }
         activeVaultKey?.let { Arrays.fill(it, 0.toByte()) }
         activeVaultKey = null
     }

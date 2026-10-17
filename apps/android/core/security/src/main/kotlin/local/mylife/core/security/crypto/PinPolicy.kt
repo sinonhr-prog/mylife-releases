@@ -8,6 +8,10 @@ object PinPolicy {
         return PIN_REGEX.matches(pin)
     }
 
+    fun isValidNewPin(pin: String): Boolean =
+        isValidPin(pin) &&
+            pin.toSet().size > 1 && pin !in setOf("123456", "654321", "012345", "543210", "234567", "345678", "456789", "987654", "876543", "765432")
+
     fun calculateDelayMs(failedAttempts: Int): Long {
         return when {
             failedAttempts <= 2 -> 0L

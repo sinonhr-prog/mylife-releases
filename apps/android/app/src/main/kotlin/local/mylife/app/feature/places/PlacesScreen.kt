@@ -89,15 +89,17 @@ fun PlacesScreen(
     val context = LocalContext.current
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground),
     ) {
         // 1. Search Bar
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedTextField(
@@ -106,12 +108,13 @@ fun PlacesScreen(
                 placeholder = { Text("Поиск мест...", color = PaperOnSurfaceVariant) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = PaperForeground,
-                    unfocusedBorderColor = PaperOutline,
-                    focusedTextColor = PaperForeground,
-                    unfocusedTextColor = PaperForeground,
-                ),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PaperForeground,
+                        unfocusedBorderColor = PaperOutline,
+                        focusedTextColor = PaperForeground,
+                        unfocusedTextColor = PaperForeground,
+                    ),
                 trailingIcon = {
                     if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
@@ -119,18 +122,20 @@ fun PlacesScreen(
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "Поле поиска мест" },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Поле поиска мест" },
             )
         }
 
         // 2. Category Chips
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -138,12 +143,13 @@ fun PlacesScreen(
                 selected = state.selectedCategoryId == null,
                 onClick = { viewModel.selectCategory(null) },
                 label = { Text("Все места") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = PaperForeground,
-                    selectedLabelColor = Color.White,
-                    containerColor = PaperSurface,
-                    labelColor = PaperForeground,
-                ),
+                colors =
+                    FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = PaperForeground,
+                        selectedLabelColor = Color.White,
+                        containerColor = PaperSurface,
+                        labelColor = PaperForeground,
+                    ),
                 border = BorderStroke(1.dp, if (state.selectedCategoryId == null) PaperForeground else PaperOutline),
                 shape = RoundedCornerShape(16.dp),
             )
@@ -153,12 +159,13 @@ fun PlacesScreen(
                     selected = state.selectedCategoryId == category.id,
                     onClick = { viewModel.selectCategory(category.id) },
                     label = { Text(category.name) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaperForeground,
-                        selectedLabelColor = Color.White,
-                        containerColor = PaperSurface,
-                        labelColor = PaperForeground,
-                    ),
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PaperForeground,
+                            selectedLabelColor = Color.White,
+                            containerColor = PaperSurface,
+                            labelColor = PaperForeground,
+                        ),
                     border = BorderStroke(1.dp, if (state.selectedCategoryId == category.id) PaperForeground else PaperOutline),
                     shape = RoundedCornerShape(16.dp),
                 )
@@ -170,7 +177,7 @@ fun PlacesScreen(
                 shape = RoundedCornerShape(16.dp),
                 border = BorderStroke(1.dp, PaperOutline),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                modifier = Modifier.defaultMinSize(minHeight = 32.dp),
+                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             ) {
                 Text("+ Категория", fontSize = 12.sp, color = PaperForeground)
             }
@@ -178,29 +185,32 @@ fun PlacesScreen(
 
         // 3. Status Filters
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val filters = listOf(
-                PlaceStatusFilter.ALL to "Все",
-                PlaceStatusFilter.WANT to "Хочу посетить",
-                PlaceStatusFilter.VISITED to "Посетил",
-                PlaceStatusFilter.FAVORITE to "★ Избранное",
-            )
+            val filters =
+                listOf(
+                    PlaceStatusFilter.ALL to "Все",
+                    PlaceStatusFilter.WANT to "Хочу посетить",
+                    PlaceStatusFilter.VISITED to "Посетил",
+                    PlaceStatusFilter.FAVORITE to "★ Избранное",
+                )
             filters.forEach { (filter, title) ->
                 FilterChip(
                     selected = state.statusFilter == filter,
                     onClick = { viewModel.onStatusFilterSelected(filter) },
                     label = { Text(title) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = PaperForeground,
-                        selectedLabelColor = Color.White,
-                        containerColor = PaperSurface,
-                        labelColor = PaperForeground,
-                    ),
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PaperForeground,
+                            selectedLabelColor = Color.White,
+                            containerColor = PaperSurface,
+                            labelColor = PaperForeground,
+                        ),
                     border = BorderStroke(1.dp, if (state.statusFilter == filter) PaperForeground else PaperOutline),
                     shape = RoundedCornerShape(16.dp),
                 )
@@ -214,18 +224,20 @@ fun PlacesScreen(
             }
         } else if (state.filteredPlaces.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                val emptyDesc = if (state.searchQuery.isNotBlank()) {
-                    "По запросу «${state.searchQuery}» ничего не найдено."
-                } else if (state.statusFilter != PlaceStatusFilter.ALL) {
-                    "В выбранном фильтре нет мест."
-                } else {
-                    "Здесь будут магазины, парки, кафе и другие места, куда хочется возвращаться."
-                }
+                val emptyDesc =
+                    if (state.searchQuery.isNotBlank()) {
+                        "По запросу «${state.searchQuery}» ничего не найдено."
+                    } else if (state.statusFilter != PlaceStatusFilter.ALL) {
+                        "В выбранном фильтре нет мест."
+                    } else {
+                        "Здесь будут магазины, парки, кафе и другие места, куда хочется возвращаться."
+                    }
                 FocusEmptyState(
                     title = if (state.searchQuery.isNotBlank()) "Ничего не найдено" else "Список мест пуст",
                     description = emptyDesc,
@@ -235,9 +247,10 @@ fun PlacesScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp),
             ) {
@@ -319,9 +332,10 @@ fun PlaceCard(
     val categoryName = categories.firstOrNull { it.id == place.categoryId }?.name ?: "Место"
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = PaperSurface),
         border = BorderStroke(1.dp, PaperOutline),
@@ -354,7 +368,7 @@ fun PlaceCard(
                     }
                     IconButton(
                         onClick = onFavoriteClick,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Text(
                             text = if (place.isFavorite) "★" else "☆",
@@ -403,10 +417,11 @@ fun PlaceCard(
             // Visit status line
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (place.visitStatus == PlaceVisitStatus.VISITED) {
-                    val dateStr = place.lastVisitedAtEpochMs?.let {
-                        val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
-                        " · " + sdf.format(Date(it))
-                    } ?: ""
+                    val dateStr =
+                        place.lastVisitedAtEpochMs?.let {
+                            val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                            " · " + sdf.format(Date(it))
+                        } ?: ""
                     Text(
                         text = "✓ Посетил$dateStr",
                         fontSize = 12.sp,
@@ -465,9 +480,10 @@ fun PlaceDetailsDialog(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
             ) {
                 // Category & Rating
                 Row(
@@ -481,17 +497,19 @@ fun PlaceDetailsDialog(
 
                 if (photoBytes != null) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    val bitmap = remember(photoBytes) {
-                        BitmapFactory.decodeByteArray(photoBytes, 0, photoBytes.size)?.asImageBitmap()
-                    }
+                    val bitmap =
+                        remember(photoBytes) {
+                            BitmapFactory.decodeByteArray(photoBytes, 0, photoBytes.size)?.asImageBitmap()
+                        }
                     if (bitmap != null) {
                         Image(
                             bitmap = bitmap,
                             contentDescription = "Фото места",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(12.dp)),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Crop,
                         )
                     }
@@ -512,10 +530,11 @@ fun PlaceDetailsDialog(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Статус", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PaperOnSurfaceVariant)
                 if (place.visitStatus == PlaceVisitStatus.VISITED) {
-                    val dateStr = place.lastVisitedAtEpochMs?.let {
-                        val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
-                        sdf.format(Date(it))
-                    } ?: "Дата не указана"
+                    val dateStr =
+                        place.lastVisitedAtEpochMs?.let {
+                            val sdf = SimpleDateFormat("dd MMMM yyyy", Locale.getDefault())
+                            sdf.format(Date(it))
+                        } ?: "Дата не указана"
                     Text("Посещено ($dateStr)", fontSize = 14.sp, color = PaperForeground)
                 } else {
                     Row(
@@ -625,22 +644,23 @@ fun AddEditPlaceDialog(
     var selectedImageMime by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        if (uri != null) {
-            try {
-                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                if (bytes != null) {
-                    selectedImageBytes = bytes
-                    selectedImageMime = mime
+    val photoPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri ->
+            if (uri != null) {
+                try {
+                    val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null) {
+                        selectedImageBytes = bytes
+                        selectedImageMime = mime
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Ошибка выбора фото: ${e.message}"
                 }
-            } catch (e: Exception) {
-                errorMessage = "Ошибка выбора фото: ${e.message}"
             }
         }
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -653,9 +673,10 @@ fun AddEditPlaceDialog(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 errorMessage?.let {
@@ -668,19 +689,21 @@ fun AddEditPlaceDialog(
                     onValueChange = { name = it },
                     label = { Text("Название *") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
                 // Category selector
                 Text("Категория", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PaperOnSurfaceVariant)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     categories.forEach { cat ->
@@ -688,12 +711,13 @@ fun AddEditPlaceDialog(
                             selected = selectedCategoryId == cat.id,
                             onClick = { selectedCategoryId = cat.id },
                             label = { Text(cat.name, fontSize = 12.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = PaperForeground,
-                                selectedLabelColor = Color.White,
-                                containerColor = PaperSurface,
-                                labelColor = PaperForeground,
-                            ),
+                            colors =
+                                FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PaperForeground,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = PaperSurface,
+                                    labelColor = PaperForeground,
+                                ),
                             border = BorderStroke(1.dp, if (selectedCategoryId == cat.id) PaperForeground else PaperOutline),
                             shape = RoundedCornerShape(12.dp),
                         )
@@ -706,10 +730,11 @@ fun AddEditPlaceDialog(
                     onValueChange = { address = it },
                     label = { Text("Адрес (вручную)") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -719,10 +744,11 @@ fun AddEditPlaceDialog(
                     onValueChange = { description = it },
                     label = { Text("Заметки / Описание") },
                     maxLines = 4,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -733,20 +759,22 @@ fun AddEditPlaceDialog(
                         selected = visitStatus == PlaceVisitStatus.WANT,
                         onClick = { visitStatus = PlaceVisitStatus.WANT },
                         label = { Text("Хочу посетить") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PaperForeground,
-                            selectedLabelColor = Color.White,
-                        ),
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PaperForeground,
+                                selectedLabelColor = Color.White,
+                            ),
                         border = BorderStroke(1.dp, if (visitStatus == PlaceVisitStatus.WANT) PaperForeground else PaperOutline),
                     )
                     FilterChip(
                         selected = visitStatus == PlaceVisitStatus.VISITED,
                         onClick = { visitStatus = PlaceVisitStatus.VISITED },
                         label = { Text("Посетил") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PaperForeground,
-                            selectedLabelColor = Color.White,
-                        ),
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = PaperForeground,
+                                selectedLabelColor = Color.White,
+                            ),
                         border = BorderStroke(1.dp, if (visitStatus == PlaceVisitStatus.VISITED) PaperForeground else PaperOutline),
                     )
                 }
@@ -770,11 +798,12 @@ fun AddEditPlaceDialog(
                         onValueChange = { ratingValue = it },
                         valueRange = 1f..10f,
                         steps = 8,
-                        colors = SliderDefaults.colors(
-                            thumbColor = PaperForeground,
-                            activeTrackColor = PaperForeground,
-                            inactiveTrackColor = PaperOutline,
-                        ),
+                        colors =
+                            SliderDefaults.colors(
+                                thumbColor = PaperForeground,
+                                activeTrackColor = PaperForeground,
+                                inactiveTrackColor = PaperOutline,
+                            ),
                     )
                 }
 
@@ -820,9 +849,12 @@ fun AddEditPlaceDialog(
                         errorMessage = "Название обязательно"
                         return@Button
                     }
-                    val lastVisited = if (visitStatus == PlaceVisitStatus.VISITED) {
-                        placeToEdit?.lastVisitedAtEpochMs ?: System.currentTimeMillis()
-                    } else null
+                    val lastVisited =
+                        if (visitStatus == PlaceVisitStatus.VISITED) {
+                            placeToEdit?.lastVisitedAtEpochMs ?: System.currentTimeMillis()
+                        } else {
+                            null
+                        }
 
                     onSave(
                         name.trim(),
@@ -871,10 +903,11 @@ fun AddCategoryDialog(
                     onValueChange = { categoryName = it },
                     label = { Text("Название категории") },
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PaperForeground,
-                        unfocusedBorderColor = PaperOutline,
-                    ),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PaperForeground,
+                            unfocusedBorderColor = PaperOutline,
+                        ),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

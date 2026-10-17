@@ -8,13 +8,12 @@ import local.mylife.core.security.crypto.PinPolicy
 import local.mylife.core.security.crypto.StreamingAeadHelper
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.GeneralSecurityException
@@ -30,9 +29,10 @@ data class ArchiveManifest(
     val formatVersion: Int = 1,
     val exportedAtEpochMs: Long = System.currentTimeMillis(),
     val appVersion: String = "1.0.0",
-    val files: Map<String, String>, // relative path -> SHA-256
+    val files: Map<String, String>,
 )
 
+/** Compatible v1 archive. ZIP and raw keys exist only inside authenticated streams/in memory. */
 class LifeVaultArchiveService(
     private val appFilesDir: File,
     private val appDatabasesDir: File,
@@ -40,29 +40,20 @@ class LifeVaultArchiveService(
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {
     companion object {
-        val MAGIC_BYTES = byteArrayOf(0x4C, 0x49, 0x46, 0x45, 0x56, 0x31, 0x00) // "LIFEV1\0"
+        val MAGIC_BYTES = byteArrayOf(0x4C, 0x49, 0x46, 0x45, 0x56, 0x31, 0x00)
         const val FORMAT_VERSION: Byte = 0x01
-        private val ARCHIVE_AAD = "v=1;p=archive-key;m=LIFEV1".toByteArray(Charsets.UTF_8)
-        private val STREAM_AAD = "v=1;p=archive-body".toByteArray(Charsets.UTF_8)
-
-        // Strict security limits to prevent memory exhaustion (DoS) attacks
-        const val MAX_KDF_MEMORY_KIB = 131072 // 128 MiB
+        private val ARCHIVE_AAD = "v=1;p=archive-key;m=LIFEV1".toByteArray()
+        private val STREAM_AAD = "v=1;p=archive-body".toByteArray()
+        const val MAX_KDF_MEMORY_KIB = 131072
         const val MAX_KDF_ITERATIONS = 10
         const val MAX_KDF_PARALLELISM = 4
         const val MAX_ARCHIVE_ENTRIES = 50000
-        const val MAX_UNCOMPRESSED_SIZE_BYTES = 500L * 1024L * 1024L // 500 MiB
-
-        val DEFAULT_ARCHIVE_KDF = Argon2Params(
-            memoryKiB = 65536, // 64 MiB
-            iterations = 3,
-            parallelism = 1,
-            outputLengthBytes = 32,
-        )
+        const val MAX_UNCOMPRESSED_SIZE_BYTES = 1024L * 1024 * 1024
+        private const val MAX_MANIFEST_BYTES = 8 * 1024 * 1024
+        private const val MAX_STREAM_BYTES = MAX_UNCOMPRESSED_SIZE_BYTES + 32 * 1024 * 1024
+        val DEFAULT_ARCHIVE_KDF = Argon2Params(65536, 3, 1, 32)
     }
 
-    /**
-     * Exports databases and encrypted attachments into a portable .lifevault archive.
-     */
     fun exportArchive(
         passphrase: String,
         outputStream: OutputStream,
@@ -70,459 +61,317 @@ class LifeVaultArchiveService(
         vaultDbKey: ByteArray,
     ) {
         require(passphrase.length >= 8) { "Archive passphrase must be at least 8 characters" }
-        require(mainDbKey.size == 32) { "Invalid main DB key length" }
-        require(vaultDbKey.size == 32) { "Invalid vault DB key length" }
-
-        // 1. Generate random archive master key and salt
-        val archiveMasterKey = ByteArray(32).also { secureRandom.nextBytes(it) }
-        val salt = ByteArray(16).also { secureRandom.nextBytes(it) }
-
-        // 2. Derive key from passphrase
-        val passBytes = passphrase.toByteArray(Charsets.UTF_8)
-        val kdfKey = try {
-            Argon2idKdf.deriveKey(passBytes, salt, DEFAULT_ARCHIVE_KDF)
-        } finally {
-            Arrays.fill(passBytes, 0.toByte())
+        require(mainDbKey.size == 32 && vaultDbKey.size == 32)
+        // Caller closes both storage sessions first. Refuse an inconsistent SQLite snapshot.
+        listOf("main.db", "vault.db").forEach { name ->
+            require(!File(appDatabasesDir, "$name-wal").let { it.exists() && it.length() > 0 }) { "Close databases before export" }
         }
-
-        // 3. Seal archive master key with AES-GCM
-        val sealedMasterKey = try {
-            AesGcmEnvelope.seal(kdfKey, archiveMasterKey, ARCHIVE_AAD)
-        } finally {
-            Arrays.fill(kdfKey, 0.toByte())
-        }
-
-        // 4. Write Header to output stream
-        val dos = DataOutputStream(outputStream)
-        dos.write(MAGIC_BYTES)
-        dos.writeByte(FORMAT_VERSION.toInt())
-        dos.write(salt)
-        dos.writeInt(DEFAULT_ARCHIVE_KDF.memoryKiB)
-        dos.writeInt(DEFAULT_ARCHIVE_KDF.iterations)
-        dos.writeShort(DEFAULT_ARCHIVE_KDF.parallelism)
-        dos.writeShort(sealedMasterKey.size)
-        dos.write(sealedMasterKey)
-        dos.flush()
-
-        // 5. Build canonical ZIP in memory / temporary staging
-        val stagingZipFile = File(cacheDir, "staging_export_${UUID.randomUUID()}.zip")
+        require(File(appDatabasesDir, "main.db").isFile) { "Main database missing" }
+        val master = ByteArray(32).also(secureRandom::nextBytes)
+        val salt = ByteArray(16).also(secureRandom::nextBytes)
         try {
-            val fileHashes = mutableMapOf<String, String>()
-
-            ZipOutputStream(BufferedOutputStream(FileOutputStream(stagingZipFile))).use { zos ->
-                // Add encryption keys securely into archive zip
-                val keysEntry = ZipEntry("keys/keys.bin")
-                zos.putNextEntry(keysEntry)
-                val keysBytes = ByteArray(64)
-                System.arraycopy(mainDbKey, 0, keysBytes, 0, 32)
-                System.arraycopy(vaultDbKey, 0, keysBytes, 32, 32)
-                zos.write(keysBytes)
-                zos.closeEntry()
-                val keysSha = MessageDigest.getInstance("SHA-256").digest(keysBytes).joinToString("") { "%02x".format(it) }
-                fileHashes["keys/keys.bin"] = keysSha
-                Arrays.fill(keysBytes, 0.toByte())
-
-                // Add databases
-                addFileToZip(zos, File(appDatabasesDir, "main.db"), "databases/main.db", fileHashes)
-                val vaultDb = File(appDatabasesDir, "vault.db")
-                if (vaultDb.exists()) {
-                    addFileToZip(zos, vaultDb, "databases/vault.db", fileHashes)
+            val kdf = derive(passphrase, salt, DEFAULT_ARCHIVE_KDF)
+            val sealed =
+                try {
+                    AesGcmEnvelope.seal(kdf, master, ARCHIVE_AAD)
+                } finally {
+                    kdf.fill(0)
                 }
+            val header = DataOutputStream(outputStream)
+            header.write(MAGIC_BYTES)
+            header.writeByte(FORMAT_VERSION.toInt())
+            header.write(salt)
+            header.writeInt(DEFAULT_ARCHIVE_KDF.memoryKiB)
+            header.writeInt(DEFAULT_ARCHIVE_KDF.iterations)
+            header.writeShort(DEFAULT_ARCHIVE_KDF.parallelism)
+            header.writeShort(sealed.size)
+            header.write(sealed)
+            header.flush()
+            val encrypted = StreamingAeadHelper.openEncryptingStream(master, outputStream, STREAM_AAD)
+            ZipOutputStream(BufferedOutputStream(encrypted)).use { zip ->
+                val hashes = linkedMapOf<String, String>()
+                val keys = mainDbKey + vaultDbKey
+                try {
+                    zip.putNextEntry(ZipEntry("keys/keys.bin"))
+                    zip.write(keys)
+                    zip.closeEntry()
+                    hashes["keys/keys.bin"] = digest(keys)
+                } finally {
+                    keys.fill(0)
+                }
+                var total = 64L
 
-                // Add attachments
-                val attachmentsDir = File(appFilesDir, "attachments")
-                attachmentsDir.listFiles()?.forEach { file ->
-                    if (file.isFile && !file.name.endsWith(".tmp")) {
-                        addFileToZip(zos, file, "attachments/${file.name}", fileHashes)
+                fun add(
+                    file: File,
+                    path: String,
+                ) {
+                    check(hashes.size < MAX_ARCHIVE_ENTRIES - 1)
+                    total += file.length()
+                    require(total <= MAX_UNCOMPRESSED_SIZE_BYTES)
+                    zip.putNextEntry(ZipEntry(path))
+                    val hash = MessageDigest.getInstance("SHA-256")
+                    file.inputStream().use { input ->
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            hash.update(buffer, 0, n)
+                            zip.write(buffer, 0, n)
+                        }
+                    }
+                    zip.closeEntry()
+                    hashes[path] = hex(hash.digest())
+                }
+                listOf("main.db", "vault.db").forEach {
+                        name ->
+                    File(appDatabasesDir, name).takeIf { it.isFile }?.let { add(it, "databases/$name") }
+                }
+                listOf("attachments", "thumbnails").forEach { folder ->
+                    File(
+                        appFilesDir,
+                        folder,
+                    ).listFiles()?.sortedBy { it.name }?.filter { it.isFile && !it.name.endsWith(".tmp") }?.forEach {
+                        require(validPath("$folder/${it.name}"))
+                        add(it, "$folder/${it.name}")
                     }
                 }
-
-                val thumbnailsDir = File(appFilesDir, "thumbnails")
-                thumbnailsDir.listFiles()?.forEach { file ->
-                    if (file.isFile && !file.name.endsWith(".tmp")) {
-                        addFileToZip(zos, file, "thumbnails/${file.name}", fileHashes)
-                    }
-                }
-
-                // Add manifest entry
-                val manifestEntry = ZipEntry("manifest.txt")
-                zos.putNextEntry(manifestEntry)
-                val manifestContent = buildString {
-                    appendLine("version:1")
-                    appendLine("timestamp:${System.currentTimeMillis()}")
-                    fileHashes.forEach { (rel, hash) ->
-                        appendLine("$hash  $rel")
-                    }
-                }
-                zos.write(manifestContent.toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
-            }
-
-            // 6. Encrypt ZIP stream into archive output via Tink Streaming AEAD
-            FileInputStream(stagingZipFile).use { zipIn ->
-                StreamingAeadHelper.encryptStream(
-                    rawKey = archiveMasterKey,
-                    input = zipIn,
-                    output = outputStream,
-                    associatedData = STREAM_AAD,
-                )
+                val manifest =
+                    buildString {
+                        appendLine("version:1")
+                        appendLine("timestamp:${System.currentTimeMillis()}")
+                        hashes.forEach { (path, hash) -> appendLine("$hash  $path") }
+                    }.toByteArray()
+                require(manifest.size <= MAX_MANIFEST_BYTES)
+                zip.putNextEntry(ZipEntry("manifest.txt"))
+                zip.write(manifest)
+                zip.closeEntry()
             }
         } finally {
-            Arrays.fill(archiveMasterKey, 0.toByte())
-            if (stagingZipFile.exists()) stagingZipFile.delete()
+            master.fill(0)
         }
     }
 
-    /**
-     * Inspects archive header, unseals master key and reads manifest.txt without applying changes.
-     */
     fun inspectArchive(
         passphrase: String,
         inputStream: InputStream,
-    ): ArchiveManifest {
-        require(passphrase.isNotBlank()) { "Archive passphrase cannot be empty" }
+    ): ArchiveManifest = readArchive(passphrase, inputStream, null) { manifest, _, _ -> manifest }
 
-        val dis = DataInputStream(BufferedInputStream(inputStream))
-
-        // 1. Validate magic header
-        val magic = ByteArray(MAGIC_BYTES.size)
-        dis.readFully(magic)
-        if (!magic.contentEquals(MAGIC_BYTES)) {
-            throw GeneralSecurityException("Invalid archive magic header")
-        }
-
-        // 2. Validate format version
-        val version = dis.readByte()
-        if (version != FORMAT_VERSION) {
-            throw GeneralSecurityException("Unsupported archive version: $version")
-        }
-
-        // 3. Read salt & validate KDF parameters against DoS bounds
-        val salt = ByteArray(16)
-        dis.readFully(salt)
-
-        val memoryKiB = dis.readInt()
-        val iterations = dis.readInt()
-        val parallelism = dis.readShort().toInt()
-
-        if (memoryKiB <= 0 || memoryKiB > MAX_KDF_MEMORY_KIB ||
-            iterations <= 0 || iterations > MAX_KDF_ITERATIONS ||
-            parallelism <= 0 || parallelism > MAX_KDF_PARALLELISM
-        ) {
-            throw GeneralSecurityException("Archive KDF parameters exceed secure bounds")
-        }
-
-        val kdfParams = Argon2Params(memoryKiB, iterations, parallelism, 32)
-
-        // 4. Read sealed master key
-        val sealedKeySize = dis.readShort().toInt()
-        val sealedKey = ByteArray(sealedKeySize)
-        dis.readFully(sealedKey)
-
-        // 5. Derive key and unwrap master key
-        val passBytes = passphrase.toByteArray(Charsets.UTF_8)
-        val kdfKey = try {
-            Argon2idKdf.deriveKey(passBytes, salt, kdfParams)
-        } finally {
-            Arrays.fill(passBytes, 0.toByte())
-        }
-
-        val archiveMasterKey = try {
-            AesGcmEnvelope.open(kdfKey, sealedKey, ARCHIVE_AAD)
-        } finally {
-            Arrays.fill(kdfKey, 0.toByte())
-        }
-
-        val stagingDir = File(cacheDir, "staging_inspect_${UUID.randomUUID()}").apply { mkdirs() }
-        val stagingZipFile = File(stagingDir, "decrypted.zip")
-
-        try {
-            FileOutputStream(stagingZipFile).use { zipOut ->
-                StreamingAeadHelper.decryptStream(
-                    rawKey = archiveMasterKey,
-                    input = dis,
-                    output = zipOut,
-                    associatedData = STREAM_AAD,
-                )
-            }
-
-            val filesMap = mutableMapOf<String, String>()
-            var exportedAt = 0L
-
-            ZipInputStream(BufferedInputStream(FileInputStream(stagingZipFile))).use { zis ->
-                var entry = zis.nextEntry
-                while (entry != null) {
-                    val name = entry.name
-                    if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
-                        throw GeneralSecurityException("Malicious path in archive: $name")
-                    }
-                    if (name == "manifest.txt") {
-                        val manifestBytes = zis.readBytes()
-                        val lines = String(manifestBytes, Charsets.UTF_8).lines()
-                        for (line in lines) {
-                            if (line.startsWith("timestamp:")) {
-                                exportedAt = line.substringAfter("timestamp:").toLongOrNull() ?: 0L
-                            } else {
-                                val parts = line.split("  ", limit = 2)
-                                if (parts.size == 2) {
-                                    filesMap[parts[1]] = parts[0]
-                                }
-                            }
-                        }
-                    }
-                    zis.closeEntry()
-                    entry = zis.nextEntry
-                }
-            }
-
-            return ArchiveManifest(
-                formatVersion = version.toInt(),
-                exportedAtEpochMs = if (exportedAt > 0L) exportedAt else System.currentTimeMillis(),
-                appVersion = "1.0.0",
-                files = filesMap,
-            )
-        } finally {
-            Arrays.fill(archiveMasterKey, 0.toByte())
-            stagingDir.deleteRecursively()
-        }
-    }
-
-    /**
-     * Inspects and securely restores an archive into clean staging, then atomically applies it.
-     */
     fun restoreArchive(
         passphrase: String,
         inputStream: InputStream,
         targetPin: String,
         targetKeyEnvelopeManager: KeyEnvelopeManager,
     ) {
-        require(PinPolicy.isValidPin(targetPin)) { "Target PIN must be strictly 6 digits" }
-        require(passphrase.isNotBlank()) { "Archive passphrase cannot be empty" }
-
-        val dis = DataInputStream(BufferedInputStream(inputStream))
-
-        // 1. Validate magic header
-        val magic = ByteArray(MAGIC_BYTES.size)
-        dis.readFully(magic)
-        if (!magic.contentEquals(MAGIC_BYTES)) {
-            throw GeneralSecurityException("Invalid archive magic header")
-        }
-
-        // 2. Validate format version
-        val version = dis.readByte()
-        if (version != FORMAT_VERSION) {
-            throw GeneralSecurityException("Unsupported archive version: $version")
-        }
-
-        // 3. Read salt & validate KDF parameters against DoS bounds
-        val salt = ByteArray(16)
-        dis.readFully(salt)
-
-        val memoryKiB = dis.readInt()
-        val iterations = dis.readInt()
-        val parallelism = dis.readShort().toInt()
-
-        if (memoryKiB <= 0 || memoryKiB > MAX_KDF_MEMORY_KIB ||
-            iterations <= 0 || iterations > MAX_KDF_ITERATIONS ||
-            parallelism <= 0 || parallelism > MAX_KDF_PARALLELISM
-        ) {
-            throw GeneralSecurityException("Archive KDF parameters exceed secure bounds: mem=$memoryKiB, iter=$iterations, p=$parallelism")
-        }
-
-        val kdfParams = Argon2Params(memoryKiB, iterations, parallelism, 32)
-
-        // 4. Read sealed master key
-        val sealedKeySize = dis.readShort().toInt()
-        val sealedKey = ByteArray(sealedKeySize)
-        dis.readFully(sealedKey)
-
-        // 5. Derive key and unwrap master key
-        val passBytes = passphrase.toByteArray(Charsets.UTF_8)
-        val kdfKey = try {
-            Argon2idKdf.deriveKey(passBytes, salt, kdfParams)
-        } finally {
-            Arrays.fill(passBytes, 0.toByte())
-        }
-
-        val archiveMasterKey = try {
-            AesGcmEnvelope.open(kdfKey, sealedKey, ARCHIVE_AAD)
-        } finally {
-            Arrays.fill(kdfKey, 0.toByte())
-        }
-
-        // 6. Decrypt stream to staging ZIP file
-        val stagingDir = File(cacheDir, "staging_restore_${UUID.randomUUID()}").apply { mkdirs() }
-        val stagingZipFile = File(stagingDir, "decrypted.zip")
-
+        require(PinPolicy.isValidPin(targetPin))
+        val stage = File(cacheDir, "restore-${UUID.randomUUID()}")
+        check(stage.mkdirs())
         try {
-            FileOutputStream(stagingZipFile).use { zipOut ->
-                StreamingAeadHelper.decryptStream(
-                    rawKey = archiveMasterKey,
-                    input = dis,
-                    output = zipOut,
-                    associatedData = STREAM_AAD,
-                )
+            readArchive(passphrase, inputStream, stage) { _, keys, files ->
+                val mainKey = keys.copyOfRange(0, 32)
+                val vaultKey = keys.copyOfRange(32, 64)
+                try {
+                    val replacements = linkedMapOf<File, File?>()
+                    listOf("main.db", "vault.db").forEach { name ->
+                        replacements[File(appDatabasesDir, name)] = files["databases/$name"]
+                        replacements[File(appDatabasesDir, "$name-wal")] = null
+                        replacements[File(appDatabasesDir, "$name-shm")] = null
+                        replacements[File(appDatabasesDir, "$name-journal")] = null
+                    }
+                    listOf("attachments", "thumbnails").forEach { folder ->
+                        File(appFilesDir, folder).listFiles()?.filter { it.isFile }?.forEach { replacements[it] = null }
+                    }
+                    files.filterKeys { it.startsWith("attachments/") || it.startsWith("thumbnails/") }.forEach { (path, source) ->
+                        replacements[File(appFilesDir, path)] = source
+                    }
+                    targetKeyEnvelopeManager.applyFilesWithNewPin(targetPin, mainKey, vaultKey, replacements)
+                } finally {
+                    mainKey.fill(0)
+                    vaultKey.fill(0)
+                }
             }
+        } finally {
+            stage.deleteRecursively()
+        }
+    }
 
-            // 7. Unpack ZIP and verify path traversal security (Zip Slip protection) & decompression bounds
-            val extractedFiles = mutableMapOf<String, File>()
-            var totalEntries = 0
-            var totalBytesUncompressed = 0L
-
-            ZipInputStream(BufferedInputStream(FileInputStream(stagingZipFile))).use { zis ->
-                var entry = zis.nextEntry
-                while (entry != null) {
-                    totalEntries++
-                    if (totalEntries > MAX_ARCHIVE_ENTRIES) {
-                        throw GeneralSecurityException("Archive exceeds maximum entry count: $totalEntries")
+    private fun <T> readArchive(
+        passphrase: String,
+        input: InputStream,
+        stage: File?,
+        action: (ArchiveManifest, ByteArray, Map<String, File>) -> T,
+    ): T {
+        require(passphrase.isNotBlank())
+        val header = DataInputStream(BufferedInputStream(input))
+        val magic = ByteArray(MAGIC_BYTES.size)
+        header.readFully(magic)
+        if (!magic.contentEquals(MAGIC_BYTES) || header.readByte() != FORMAT_VERSION) {
+            throw GeneralSecurityException(
+                "Invalid archive magic header or version",
+            )
+        }
+        val salt = ByteArray(16)
+        header.readFully(salt)
+        val memory = header.readInt()
+        val iterations = header.readInt()
+        val parallelism = header.readUnsignedShort()
+        if (memory !in 8192..MAX_KDF_MEMORY_KIB || iterations !in 1..MAX_KDF_ITERATIONS || parallelism !in 1..MAX_KDF_PARALLELISM) {
+            throw GeneralSecurityException(
+                "Archive KDF parameters exceed secure bounds",
+            )
+        }
+        val sealedSize = header.readUnsignedShort()
+        if (sealedSize != 60) throw GeneralSecurityException("Invalid sealed key size")
+        val sealed = ByteArray(sealedSize)
+        header.readFully(sealed)
+        val kdf = derive(passphrase, salt, Argon2Params(memory, iterations, parallelism, 32))
+        val master =
+            try {
+                AesGcmEnvelope.open(kdf, sealed, ARCHIVE_AAD)
+            } finally {
+                kdf.fill(0)
+            }
+        var keys = ByteArray(0)
+        try {
+            val decrypting = StreamingAeadHelper.openDecryptingStream(master, header, STREAM_AAD)
+            decrypting.use { raw ->
+                val bounded = LimitedInput(raw, MAX_STREAM_BYTES)
+                // ZipInputStream may stop before AEAD's final segment. Drain the authenticated stream below.
+                val zip =
+                    ZipInputStream(
+                        BufferedInputStream(
+                            object : FilterInputStream(bounded) {
+                                override fun close() {}
+                            },
+                        ),
+                    )
+                val hashes = linkedMapOf<String, String>()
+                val files = linkedMapOf<String, File>()
+                val names = mutableSetOf<String>()
+                var manifestBytes: ByteArray? = null
+                var total = 0L
+                while (true) {
+                    val entry = zip.nextEntry ?: break
+                    val path = entry.name
+                    if (!validPath(path) || entry.isDirectory || !names.add(path) || names.size > MAX_ARCHIVE_ENTRIES) {
+                        throw GeneralSecurityException(
+                            "Invalid archive entry",
+                        )
                     }
-
-                    val name = entry.name
-                    // Strict anti-path-traversal check
-                    if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
-                        throw GeneralSecurityException("Malicious path in archive: $name")
+                    val memoryOut = if (path == "keys/keys.bin" || path == "manifest.txt") ByteArrayOutputStream() else null
+                    val target = if (stage != null && memoryOut == null) File(stage, "entry-${names.size}") else null
+                    val diskOut = target?.let { FileOutputStream(it) }
+                    val hash = MessageDigest.getInstance("SHA-256")
+                    var size = 0L
+                    try {
+                        val buffer = ByteArray(8192)
+                        while (true) {
+                            val n = zip.read(buffer)
+                            if (n < 0) break
+                            size += n
+                            total += n
+                            if (total > MAX_UNCOMPRESSED_SIZE_BYTES || (path == "keys/keys.bin" && size > 64) || (path == "manifest.txt" && size > MAX_MANIFEST_BYTES)) {
+                                throw GeneralSecurityException(
+                                    "Archive size limit",
+                                )
+                            }
+                            hash.update(buffer, 0, n)
+                            memoryOut?.write(buffer, 0, n)
+                            diskOut?.write(buffer, 0, n)
+                        }
+                    } finally {
+                        diskOut?.close()
                     }
-
-                    val destFile = File(stagingDir, name)
-                    // Ensure canonical path stays within staging directory
-                    if (!destFile.canonicalPath.startsWith(stagingDir.canonicalPath + File.separator)) {
-                        throw GeneralSecurityException("Archive entry escapes destination: $name")
+                    when (path) {
+                        "keys/keys.bin" -> {
+                            keys = memoryOut!!.toByteArray()
+                            if (keys.size != 64) throw GeneralSecurityException("Invalid keys")
+                        }
+                        "manifest.txt" -> manifestBytes = memoryOut!!.toByteArray()
+                        else -> if (target != null) files[path] = target
                     }
-
-                    if (entry.isDirectory) {
-                        destFile.mkdirs()
-                    } else {
-                        destFile.parentFile?.mkdirs()
-                        FileOutputStream(destFile).use { fileOut ->
-                            val buf = ByteArray(8192)
-                            var len: Int
-                            while (zis.read(buf).also { len = it } != -1) {
-                                totalBytesUncompressed += len
-                                if (totalBytesUncompressed > MAX_UNCOMPRESSED_SIZE_BYTES) {
-                                    throw GeneralSecurityException("Archive exceeds maximum uncompressed size: $totalBytesUncompressed")
-                                }
-                                fileOut.write(buf, 0, len)
+                    if (path != "manifest.txt") hashes[path] = hex(hash.digest())
+                    zip.closeEntry()
+                }
+                // Buffered ZIP may have prefetched authenticated bytes; consume its backing stream to EOF.
+                val drain = ByteArray(8192)
+                while (bounded.read(drain) != -1) { }
+                zip.close()
+                val text = manifestBytes?.toString(Charsets.UTF_8) ?: throw GeneralSecurityException("Missing manifest")
+                val expected = linkedMapOf<String, String>()
+                var timestamp = 0L
+                var version = false
+                text.lineSequence().filter { it.isNotEmpty() }.forEach { line ->
+                    when {
+                        line == "version:1" -> version = true
+                        line.startsWith(
+                            "timestamp:",
+                        ) -> timestamp = line.substringAfter(':').toLongOrNull() ?: throw GeneralSecurityException("Invalid timestamp")
+                        else -> {
+                            val parts = line.split("  ", limit = 2)
+                            if (parts.size != 2 || !parts[0].matches(Regex("[a-fA-F0-9]{64}")) || !validPath(parts[1]) || expected.put(parts[1], parts[0].lowercase()) != null) {
+                                throw GeneralSecurityException(
+                                    "Invalid manifest",
+                                )
                             }
                         }
-                        extractedFiles[name] = destFile
-                    }
-                    zis.closeEntry()
-                    entry = zis.nextEntry
-                }
-            }
-
-            // 8. Validate manifest
-            val manifestFile = extractedFiles["manifest.txt"]
-                ?: throw GeneralSecurityException("Missing manifest in archive")
-            val manifestLines = manifestFile.readLines()
-            for (line in manifestLines) {
-                val parts = line.split("  ", limit = 2)
-                if (parts.size == 2) {
-                    val expectedSha256 = parts[0]
-                    val relPath = parts[1]
-                    val actualFile = extractedFiles[relPath]
-                        ?: throw GeneralSecurityException("Missing declared file in archive: $relPath")
-                    val actualSha256 = sha256(actualFile)
-                    if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
-                        throw GeneralSecurityException("Integrity check failed for $relPath: expected $expectedSha256 but got $actualSha256")
                     }
                 }
-            }
-
-            // 9. Read restored database encryption keys
-            val keysFile = extractedFiles["keys/keys.bin"]
-                ?: throw GeneralSecurityException("Missing keys entry in archive")
-            val keysBytes = keysFile.readBytes()
-            if (keysBytes.size != 64) {
-                throw GeneralSecurityException("Invalid keys data size in archive: ${keysBytes.size}")
-            }
-            val restoredMainKey = ByteArray(32)
-            val restoredVaultKey = ByteArray(32)
-            System.arraycopy(keysBytes, 0, restoredMainKey, 0, 32)
-            System.arraycopy(keysBytes, 32, restoredVaultKey, 0, 32)
-            Arrays.fill(keysBytes, 0.toByte())
-
-            // 10. Atomically swap files into place:
-            // Staging databases -> production databases
-            val restoredMainDb = extractedFiles["databases/main.db"]
-            if (restoredMainDb != null) {
-                val targetMain = File(appDatabasesDir, "main.db")
-                if (!appDatabasesDir.exists()) appDatabasesDir.mkdirs()
-                copyOrMoveFile(restoredMainDb, targetMain)
-            }
-
-            val restoredVaultDb = extractedFiles["databases/vault.db"]
-            if (restoredVaultDb != null) {
-                val targetVault = File(appDatabasesDir, "vault.db")
-                copyOrMoveFile(restoredVaultDb, targetVault)
-            }
-
-            // Staging attachments -> production attachments
-            extractedFiles.forEach { (rel, file) ->
-                if (rel.startsWith("attachments/") || rel.startsWith("thumbnails/")) {
-                    val target = File(appFilesDir, rel)
-                    target.parentFile?.mkdirs()
-                    copyOrMoveFile(file, target)
+                if (!version || keys.size != 64 || !hashes.containsKey("databases/main.db") || expected != hashes) {
+                    throw GeneralSecurityException(
+                        "Archive integrity mismatch",
+                    )
                 }
-            }
-
-            // 11. Generate fresh local KeyStore envelopes on target device using user's new PIN and restored keys
-            try {
-                targetKeyEnvelopeManager.restoreKeysWithNewPin(targetPin, restoredMainKey, restoredVaultKey)
-            } finally {
-                Arrays.fill(restoredMainKey, 0.toByte())
-                Arrays.fill(restoredVaultKey, 0.toByte())
+                return action(ArchiveManifest(exportedAtEpochMs = timestamp, files = expected), keys, files)
             }
         } finally {
-            Arrays.fill(archiveMasterKey, 0.toByte())
-            stagingDir.deleteRecursively()
+            keys.fill(0)
+            master.fill(0)
         }
     }
 
-    private fun addFileToZip(
-        zos: ZipOutputStream,
-        file: File,
-        entryName: String,
-        hashes: MutableMap<String, String>,
-    ) {
-        if (!file.exists()) return
-        val entry = ZipEntry(entryName)
-        zos.putNextEntry(entry)
-        val hash = FileInputStream(file).use { input ->
-            val md = MessageDigest.getInstance("SHA-256")
-            val buf = ByteArray(8192)
-            var len: Int
-            while (input.read(buf).also { len = it } != -1) {
-                zos.write(buf, 0, len)
-                md.update(buf, 0, len)
-            }
-            md.digest().joinToString("") { "%02x".format(it) }
+    private fun validPath(path: String): Boolean =
+        path == "manifest.txt" || path == "keys/keys.bin" || path == "databases/main.db" || path == "databases/vault.db" ||
+            path.matches(Regex("(attachments|thumbnails)/[A-Za-z0-9_-][A-Za-z0-9_.-]{0,199}")) && !path.contains("..")
+
+    private fun derive(
+        phrase: String,
+        salt: ByteArray,
+        params: Argon2Params,
+    ): ByteArray {
+        val bytes = phrase.toByteArray(Charsets.UTF_8)
+        return try {
+            Argon2idKdf.deriveKey(bytes, salt, params)
+        } finally {
+            Arrays.fill(bytes, 0.toByte())
         }
-        zos.closeEntry()
-        hashes[entryName] = hash
     }
 
-    private fun sha256(file: File): String {
-        val md = MessageDigest.getInstance("SHA-256")
-        FileInputStream(file).use { input ->
-            val buf = ByteArray(8192)
-            var len: Int
-            while (input.read(buf).also { len = it } != -1) {
-                md.update(buf, 0, len)
-            }
-        }
-        return md.digest().joinToString("") { "%02x".format(it) }
-    }
+    private fun digest(bytes: ByteArray): String = hex(MessageDigest.getInstance("SHA-256").digest(bytes))
 
-    private fun copyOrMoveFile(src: File, dst: File) {
-        val tmpDst = File(dst.parentFile, "${dst.name}.tmp")
-        src.copyTo(tmpDst, overwrite = true)
-        if (!tmpDst.renameTo(dst)) {
-            if (dst.exists()) dst.delete()
-            if (!tmpDst.renameTo(dst)) {
-                src.copyTo(dst, overwrite = true)
-                tmpDst.delete()
-            }
+    private fun hex(bytes: ByteArray): String = bytes.joinToString("") { "%02x".format(it) }
+
+    private class LimitedInput(input: InputStream, private val limit: Long) : FilterInputStream(input) {
+        private var count = 0L
+
+        override fun read(): Int {
+            val value = super.read()
+            if (value >= 0) checkLimit(1)
+            return value
+        }
+
+        override fun read(
+            buffer: ByteArray,
+            offset: Int,
+            length: Int,
+        ): Int {
+            val n = `in`.read(buffer, offset, length)
+            if (n > 0) checkLimit(n)
+            return n
+        }
+
+        private fun checkLimit(n: Int) {
+            count += n
+            if (count > limit) throw GeneralSecurityException("Archive stream size limit")
         }
     }
 }

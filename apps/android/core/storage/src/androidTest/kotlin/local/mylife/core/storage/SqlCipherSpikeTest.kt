@@ -16,9 +16,7 @@ import local.mylife.core.model.TaskItem
 import local.mylife.core.model.TaskPriority
 import local.mylife.core.model.TaskStatus
 import local.mylife.core.storage.db.AppDatabase
-import local.mylife.core.storage.db.CategoryEntity
 import local.mylife.core.storage.db.EncryptedDatabaseFactory
-import local.mylife.core.storage.db.ProductEntity
 import local.mylife.core.storage.db.RoomCategoryRepository
 import local.mylife.core.storage.db.RoomDashboardRepository
 import local.mylife.core.storage.db.RoomPlaceRepository
@@ -27,18 +25,15 @@ import local.mylife.core.storage.db.RoomTaskRepository
 import local.mylife.core.storage.db.TaskEntity
 import local.mylife.core.storage.files.EncryptedAttachmentStore
 import org.junit.After
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.util.UUID
@@ -55,7 +50,8 @@ class SqlCipherSpikeTest {
     fun setUp() {
         try {
             System.loadLibrary("sqlcipher")
-        } catch (_: UnsatisfiedLinkError) {}
+        } catch (_: UnsatisfiedLinkError) {
+        }
         context = ApplicationProvider.getApplicationContext()
         dbFile = context.getDatabasePath(dbName)
         if (dbFile.exists()) dbFile.delete()
@@ -79,16 +75,17 @@ class SqlCipherSpikeTest {
             val db = EncryptedDatabaseFactory.createDatabase(context, dbName, validPassphrase)
             val repository = RoomTaskRepository(db.taskDao())
 
-            val syntheticTask = TaskItem(
-                id = "task-spike-1",
-                title = "Проверить шифрование SQLCipher",
-                description = "Синтетический тест round-trip Room + SQLCipher",
-                dueAtEpochMs = 1770000000000L,
-                status = TaskStatus.OPEN,
-                priority = TaskPriority.HIGH,
-                createdAtEpochMs = 1760000000000L,
-                updatedAtEpochMs = 1760000000000L,
-            )
+            val syntheticTask =
+                TaskItem(
+                    id = "task-spike-1",
+                    title = "Проверить шифрование SQLCipher",
+                    description = "Синтетический тест round-trip Room + SQLCipher",
+                    dueAtEpochMs = 1770000000000L,
+                    status = TaskStatus.OPEN,
+                    priority = TaskPriority.HIGH,
+                    createdAtEpochMs = 1760000000000L,
+                    updatedAtEpochMs = 1760000000000L,
+                )
 
             repository.saveTask(syntheticTask)
 
@@ -122,14 +119,15 @@ class SqlCipherSpikeTest {
             catRepo.saveCategory(cat)
 
             // 2. Create child product linked to valid category
-            val prod = Product(
-                id = "prod-1",
-                categoryId = "cat-electronics",
-                title = "Телефон",
-                rating = 9,
-                priceMinor = 5000000L,
-                currency = "RUB",
-            )
+            val prod =
+                Product(
+                    id = "prod-1",
+                    categoryId = "cat-electronics",
+                    title = "Телефон",
+                    rating = 9,
+                    priceMinor = 5000000L,
+                    currency = "RUB",
+                )
             prodRepo.saveProduct(prod)
 
             val saved = prodRepo.getProductById("prod-1")
@@ -141,9 +139,10 @@ class SqlCipherSpikeTest {
                 catRepo.deleteCategory("cat-electronics")
                 fail("Deleting referenced category must throw SQLiteConstraintException")
             } catch (expected: Exception) {
-                val isConstraint = expected is SQLiteConstraintException ||
-                    expected.message?.contains("FOREIGN KEY") == true ||
-                    expected.message?.contains("constraint") == true
+                val isConstraint =
+                    expected is SQLiteConstraintException ||
+                        expected.message?.contains("FOREIGN KEY") == true ||
+                        expected.message?.contains("constraint") == true
                 assertTrue("Expected foreign key constraint violation: ${expected.message}", isConstraint)
             }
 
@@ -157,20 +156,21 @@ class SqlCipherSpikeTest {
             val db = EncryptedDatabaseFactory.createDatabase(context, dbName, validPassphrase)
             val catRepo = RoomCategoryRepository(db.categoryDao())
             val placeRepo = RoomPlaceRepository(db.placeDao())
-            val dashRepo = RoomDashboardRepository(db.taskDao(), db.reminderDao(), db.placeDao(), db.productDao())
+            val dashRepo = RoomDashboardRepository(db.taskDao(), db.reminderDao(), db.placeDao(), db.productDao(), db.noteDao())
 
             val cat = Category(id = "cat-food", name = "Кафе", kind = CategoryKind.PLACE)
             catRepo.saveCategory(cat)
 
             // Place with lastVisitedAt
-            val place1 = Place(
-                id = "place-1",
-                categoryId = "cat-food",
-                name = "Кофейня",
-                visitStatus = PlaceVisitStatus.VISITED,
-                lastVisitedAtEpochMs = 1765000000000L,
-                rating = 9,
-            )
+            val place1 =
+                Place(
+                    id = "place-1",
+                    categoryId = "cat-food",
+                    name = "Кофейня",
+                    visitStatus = PlaceVisitStatus.VISITED,
+                    lastVisitedAtEpochMs = 1765000000000L,
+                    rating = 9,
+                )
             placeRepo.savePlace(place1)
 
             val summary = dashRepo.getDashboardSummary()
@@ -230,9 +230,10 @@ class SqlCipherSpikeTest {
                 dbWrong.taskDao().getById("auth-test-task")
                 fail("Expected exception when querying with wrong passphrase")
             } catch (expected: Exception) {
-                val isExpectedError = expected is SQLiteException ||
-                    expected.javaClass.name.contains("sqlcipher") ||
-                    expected.message?.contains("database") == true
+                val isExpectedError =
+                    expected is SQLiteException ||
+                        expected.javaClass.name.contains("sqlcipher") ||
+                        expected.message?.contains("database") == true
                 assertTrue("Expected SQLite/SQLCipher failure", isExpectedError)
             } finally {
                 dbWrong.close()
@@ -254,9 +255,10 @@ class SqlCipherSpikeTest {
             dbV1.close()
 
             // Step 2: Open DB with MIGRATION_1_2 and verify data preserved
-            val dbV2 = EncryptedDatabaseFactory.createDatabase(context, dbName, validPassphrase) {
-                addMigrations(AppDatabase.MIGRATION_1_2)
-            }
+            val dbV2 =
+                EncryptedDatabaseFactory.createDatabase(context, dbName, validPassphrase) {
+                    addMigrations(AppDatabase.MIGRATION_1_2)
+                }
 
             val dbInstance = dbV2.openHelper.writableDatabase
             dbInstance.execSQL("ALTER TABLE tasks ADD COLUMN extraData TEXT NOT NULL DEFAULT ''")
@@ -282,10 +284,17 @@ class SqlCipherSpikeTest {
             // 1. Create synthetic valid PNG image in memory
             val syntheticPng = ByteArray(1024) { (it % 250).toByte() }
             // Minimal valid 1x1 PNG header bytes
-            val pngHeader = byteArrayOf(
-                0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte(),
-                0x0D.toByte(), 0x0A.toByte(), 0x1A.toByte(), 0x0A.toByte(),
-            )
+            val pngHeader =
+                byteArrayOf(
+                    0x89.toByte(),
+                    0x50.toByte(),
+                    0x4E.toByte(),
+                    0x47.toByte(),
+                    0x0D.toByte(),
+                    0x0A.toByte(),
+                    0x1A.toByte(),
+                    0x0A.toByte(),
+                )
             System.arraycopy(pngHeader, 0, syntheticPng, 0, pngHeader.size)
 
             // Test rejection of non-image MIME

@@ -19,7 +19,6 @@ import java.util.Arrays
  * - Установку на несовместимую версию Android.
  */
 class ApkVerifier(private val context: Context) {
-
     data class VerificationResult(
         val isValid: Boolean,
         val archivePackageName: String,
@@ -32,7 +31,10 @@ class ApkVerifier(private val context: Context) {
     /**
      * Комплексная проверка скачанного APK.
      */
-    fun verify(apkFile: File, expectedVersionCode: Int = 0): VerificationResult {
+    fun verify(
+        apkFile: File,
+        expectedVersionCode: Int = 0,
+    ): VerificationResult {
         if (!apkFile.exists() || apkFile.length() == 0L) {
             return VerificationResult(
                 isValid = false,
@@ -45,42 +47,43 @@ class ApkVerifier(private val context: Context) {
         }
 
         val pm = context.packageManager
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            @Suppress("DEPRECATION")
-            PackageManager.GET_SIGNATURES
-        }
+        val flags =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                @Suppress("DEPRECATION")
+                PackageManager.GET_SIGNATURES
+            }
 
-        val archiveInfo = pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
-            ?: return VerificationResult(
-                isValid = false,
-                archivePackageName = "",
-                archiveVersionCode = 0,
-                archiveVersionName = "",
-                sha256Fingerprint = "",
-                errorMessage = "Система Android не смогла распознать файл как валидный APK-пакет",
-            )
+        val archiveInfo =
+            pm.getPackageArchiveInfo(apkFile.absolutePath, flags)
+                ?: return VerificationResult(
+                    isValid = false,
+                    archivePackageName = "",
+                    archiveVersionCode = 0,
+                    archiveVersionName = "",
+                    sha256Fingerprint = "",
+                    errorMessage = "Система Android не смогла распознать файл как валидный APK-пакет",
+                )
 
         // Исправление для getPackageArchiveInfo (applicationInfo.sourceDir должен быть задан)
         archiveInfo.applicationInfo?.sourceDir = apkFile.absolutePath
         archiveInfo.applicationInfo?.publicSourceDir = apkFile.absolutePath
 
         val archivePackageName = archiveInfo.packageName ?: ""
-        val archiveVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            archiveInfo.longVersionCode
-        } else {
-            @Suppress("DEPRECATION")
-            archiveInfo.versionCode.toLong()
-        }
+        val archiveVersionCode =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archiveInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                archiveInfo.versionCode.toLong()
+            }
         val archiveVersionName = archiveInfo.versionName ?: ""
 
         // 1. Проверка applicationId
         val currentPackageName = context.packageName
         // Разрешаем обновление release на release, либо debug на debug
-        if (archivePackageName != currentPackageName &&
-            !archivePackageName.startsWith("local.mylife")
-        ) {
+        if (archivePackageName != currentPackageName) {
             return VerificationResult(
                 isValid = false,
                 archivePackageName = archivePackageName,
@@ -194,12 +197,13 @@ class ApkVerifier(private val context: Context) {
 
     private fun getCurrentSignatures(): List<Signature> {
         val pm = context.packageManager
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            @Suppress("DEPRECATION")
-            PackageManager.GET_SIGNATURES
-        }
+        val flags =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageManager.GET_SIGNING_CERTIFICATES
+            } else {
+                @Suppress("DEPRECATION")
+                PackageManager.GET_SIGNATURES
+            }
 
         val packageInfo = pm.getPackageInfo(context.packageName, flags)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

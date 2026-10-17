@@ -8,8 +8,6 @@ import local.mylife.core.security.crypto.PinPolicy
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -21,7 +19,6 @@ import java.security.GeneralSecurityException
 import java.util.Arrays
 
 class H03SecuritySessionTest {
-
     @get:Rule
     val tempFolder = TemporaryFolder()
 
@@ -30,7 +27,7 @@ class H03SecuritySessionTest {
     private lateinit var envelopeManager: KeyEnvelopeManager
     private lateinit var sessionManager: DefaultSessionManager
 
-    private val validPin = "123456"
+    private val validPin = "583926"
     private val wrongPin = "654321"
 
     @Before
@@ -96,18 +93,19 @@ class H03SecuritySessionTest {
         val innerWrap = deviceKeyProvider.decrypt(deviceAlias, mainRecord.outerWrap)
 
         val pinBytes = validPin.toByteArray(Charsets.UTF_8)
-        val kPin = local.mylife.core.security.crypto.Argon2idKdf.deriveKey(
-            pinBytes,
-            mainRecord.salt,
-            mainRecord.kdfParams
-        )
+        val kPin =
+            local.mylife.core.security.crypto.Argon2idKdf.deriveKey(
+                pinBytes,
+                mainRecord.salt,
+                mainRecord.kdfParams,
+            )
 
         try {
             // Attempt opening with VAULT AAD instead of MAIN AAD
             local.mylife.core.security.crypto.AesGcmEnvelope.open(
                 kPin,
                 innerWrap,
-                KeyScope.VAULT.pinWrapAad()
+                KeyScope.VAULT.pinWrapAad(),
             )
             fail("Opening main envelope with vault AAD must throw GeneralSecurityException")
         } catch (expected: GeneralSecurityException) {
@@ -157,7 +155,10 @@ class H03SecuritySessionTest {
             assertTrue("After lockVault, session must revert to MainUnlocked", mainState is SessionState.MainUnlocked)
 
             // Verify original vault key memory is wiped (zeroized)
-            assertTrue("Vault key array must be zeroized", originalVaultKey.any { it != 0.toByte() } && vaultState.vaultDbKey.all { it == 0.toByte() })
+            assertTrue(
+                "Vault key array must be zeroized",
+                originalVaultKey.any { it != 0.toByte() } && vaultState.vaultDbKey.all { it == 0.toByte() },
+            )
         }
     }
 
@@ -187,7 +188,7 @@ class H03SecuritySessionTest {
         val initialMainState = sessionManager.getSessionState() as SessionState.MainUnlocked
         val initialMainKey = initialMainState.mainDbKey.copyOf()
 
-        val newPin = "987654"
+        val newPin = "729385"
         assertTrue(sessionManager.changePin(validPin, newPin))
 
         // Old PIN no longer unlocks

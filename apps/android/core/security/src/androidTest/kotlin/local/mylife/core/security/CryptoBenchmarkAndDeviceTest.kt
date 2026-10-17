@@ -231,7 +231,7 @@ class CryptoBenchmarkAndDeviceTest {
             val provider = local.mylife.core.security.crypto.AndroidDeviceKeyProvider()
             val manager = local.mylife.core.security.crypto.KeyEnvelopeManager(storageDir, provider)
 
-            val testPin = "654321"
+            val testPin = "583926"
             val (mainKey, vaultKey) = manager.setupNewPin(testPin)
 
             assertEquals(32, mainKey.size)

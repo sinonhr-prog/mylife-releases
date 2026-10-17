@@ -13,12 +13,14 @@ android {
         applicationId = "local.mylife"
         minSdk = 29
         targetSdk = 35
-        versionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt().also {
-            require(it in 1..2100000000) { "appVersionCode must be a positive Android version code" }
-        }
-        versionName = providers.gradleProperty("appVersionName").orElse("0.1.0").get().also {
-            require(it.isNotBlank()) { "appVersionName must not be blank" }
-        }
+        versionCode =
+            providers.gradleProperty("appVersionCode").orElse("1").get().toInt().also {
+                require(it in 1..2100000000) { "appVersionCode must be a positive Android version code" }
+            }
+        versionName =
+            providers.gradleProperty("appVersionName").orElse("0.1.0").get().also {
+                require(it.isNotBlank()) { "appVersionName must not be blank" }
+            }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -46,13 +48,17 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+            applicationIdSuffix =
+                providers.gradleProperty("debugApplicationIdSuffix").orElse(".debug").get().also {
+                    require(it == ".debug" || it == ".qa") { "Unsupported test package suffix" }
+                }
             isDebuggable = true
         }
         release {
-            applicationIdSuffix = providers.gradleProperty("releaseApplicationIdSuffix").orElse("").get().also {
-                require(it == "" || it == ".debug") { "Unsupported release application ID suffix" }
-            }
+            applicationIdSuffix =
+                providers.gradleProperty("releaseApplicationIdSuffix").orElse("").get().also {
+                    require(it == "" || it == ".debug") { "Unsupported release application ID suffix" }
+                }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

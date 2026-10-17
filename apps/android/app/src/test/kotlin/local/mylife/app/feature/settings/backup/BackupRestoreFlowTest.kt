@@ -4,7 +4,6 @@ import local.mylife.core.security.crypto.InMemoryDeviceKeyProvider
 import local.mylife.core.security.crypto.KeyEnvelopeManager
 import local.mylife.core.storage.backup.LifeVaultArchiveService
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -20,7 +19,6 @@ import java.security.GeneralSecurityException
  * Тесты UX и бизнес-логики экспорта и восстановления резервных копий (H09: backup-ux & restore-ux)
  */
 class BackupRestoreFlowTest {
-
     @get:Rule
     val tempFolder = TemporaryFolder()
 
@@ -44,13 +42,14 @@ class BackupRestoreFlowTest {
         keyDir = File(root, "keys").apply { mkdirs() }
 
         envelopeManager = KeyEnvelopeManager(keyDir, InMemoryDeviceKeyProvider())
-        envelopeManager.setupNewPin("123456")
+        envelopeManager.setupNewPin("583926")
 
-        archiveService = LifeVaultArchiveService(
-            appFilesDir = filesDir,
-            appDatabasesDir = databasesDir,
-            cacheDir = cacheDir,
-        )
+        archiveService =
+            LifeVaultArchiveService(
+                appFilesDir = filesDir,
+                appDatabasesDir = databasesDir,
+                cacheDir = cacheDir,
+            )
 
         // Подготовим фиктивные базы и файлы
         File(databasesDir, "main.db").writeText("SQLite format 3 (Mock Main DB Content)")
@@ -116,10 +115,11 @@ class BackupRestoreFlowTest {
         }
 
         // 2. Успешная инспекция и получение манифеста с валидной фразой
-        val manifest = archiveService.inspectArchive(
-            passphrase = validPassphrase,
-            inputStream = ByteArrayInputStream(archiveBytes),
-        )
+        val manifest =
+            archiveService.inspectArchive(
+                passphrase = validPassphrase,
+                inputStream = ByteArrayInputStream(archiveBytes),
+            )
 
         assertNotNull(manifest)
         assertEquals(1, manifest.formatVersion)
@@ -149,7 +149,7 @@ class BackupRestoreFlowTest {
         // Создаем новое чистое целевое окружение устройства (новый PIN)
         val targetKeyDir = tempFolder.newFolder("target_device_keys")
         val targetEnvelopeManager = KeyEnvelopeManager(targetKeyDir, InMemoryDeviceKeyProvider())
-        val newTargetPin = "654321"
+        val newTargetPin = "729385"
 
         // Восстанавливаем данные
         archiveService.restoreArchive(

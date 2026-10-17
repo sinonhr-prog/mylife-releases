@@ -7,8 +7,9 @@ import android.view.WindowManager
 import local.mylife.core.security.SessionManager
 
 class SessionLifecycleManager(
-    private val sessionManager: SessionManager,
+    private val sessionManager: () -> SessionManager?,
 ) : Application.ActivityLifecycleCallbacks {
+    constructor(sessionManager: SessionManager) : this({ sessionManager })
 
     private var startedActivityCount = 0
 
@@ -20,7 +21,7 @@ class SessionLifecycleManager(
     }
 
     fun disableWindowSecurity(activity: Activity) {
-        activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        enableWindowSecurity(activity)
     }
 
     override fun onActivityStarted(activity: Activity) {
@@ -32,13 +33,23 @@ class SessionLifecycleManager(
         if (startedActivityCount <= 0) {
             startedActivityCount = 0
             // App went to background: automatically lock all sessions and wipe memory keys
-            sessionManager.lockAll()
+            sessionManager()?.lockAll()
         }
     }
 
-    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+    override fun onActivityCreated(
+        activity: Activity,
+        savedInstanceState: Bundle?,
+    ) = Unit
+
     override fun onActivityResumed(activity: Activity) = Unit
+
     override fun onActivityPaused(activity: Activity) = Unit
-    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+    override fun onActivitySaveInstanceState(
+        activity: Activity,
+        outState: Bundle,
+    ) = Unit
+
     override fun onActivityDestroyed(activity: Activity) = Unit
 }

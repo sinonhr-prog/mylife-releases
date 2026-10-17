@@ -15,12 +15,22 @@ interface UpdateRepository {
     val state: StateFlow<UpdateState>
 
     fun getCurrentVersionCode(): Int
+
     fun getCurrentVersionName(): String
 
     suspend fun checkForUpdates(): Result<UpdateInfo?>
+
     suspend fun downloadUpdate(info: UpdateInfo): Result<File>
-    fun installUpdate(apkFile: File, info: UpdateInfo): Result<Unit>
+
+    fun installUpdate(
+        apkFile: File,
+        info: UpdateInfo,
+    ): Result<Unit>
+
+    fun refreshInstallPermission() {}
+
     fun cancel()
+
     fun dismissError()
 }
 
@@ -33,7 +43,7 @@ class DefaultUpdateRepository(
     private val verifier: ApkVerifier = ApkVerifier(context),
     private val installerHelper: PackageInstallerHelper = PackageInstallerHelper(context),
 ) : UpdateRepository {
-
+    private var pendingInstall: UpdateState.ReadyToInstall? = null
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     override val state: StateFlow<UpdateState> = _state.asStateFlow()
 
@@ -69,39 +79,43 @@ class DefaultUpdateRepository(
                 }
             },
             onFailure = { error ->
-                _state.value = UpdateState.Error(
-                    message = error.message ?: "Не удалось проверить обновления",
-                    canRetry = true,
-                )
+                _state.value =
+                    UpdateState.Error(
+                        message = error.message ?: "Не удалось проверить обновления",
+                        canRetry = true,
+                    )
                 Result.failure(error)
             },
         )
     }
 
     override suspend fun downloadUpdate(info: UpdateInfo): Result<File> {
-        _state.value = UpdateState.Downloading(
-            progressPercent = 0,
-            downloadedBytes = 0,
-            totalBytes = info.sizeBytes,
-        )
+        _state.value =
+            UpdateState.Downloading(
+                progressPercent = 0,
+                downloadedBytes = 0,
+                totalBytes = info.sizeBytes,
+            )
 
         val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
         val targetApk = File(updatesDir, "mylife-${info.versionCode}.apk")
 
-        val downloadResult = releaseClient.downloadApk(
-            apkUrl = info.apkUrl,
-            targetFile = targetApk,
-            expectedSha256 = info.sha256,
-            expectedSize = info.sizeBytes,
-            onProgress = { downloaded, total ->
-                val percent = if (total > 0) ((downloaded * 100) / total).toInt().coerceIn(0, 100) else 0
-                _state.value = UpdateState.Downloading(
-                    progressPercent = percent,
-                    downloadedBytes = downloaded,
-                    totalBytes = total,
-                )
-            },
-        )
+        val downloadResult =
+            releaseClient.downloadApk(
+                apkUrl = info.apkUrl,
+                targetFile = targetApk,
+                expectedSha256 = info.sha256,
+                expectedSize = info.sizeBytes,
+                onProgress = { downloaded, total ->
+                    val percent = if (total > 0) ((downloaded * 100) / total).toInt().coerceIn(0, 100) else 0
+                    _state.value =
+                        UpdateState.Downloading(
+                            progressPercent = percent,
+                            downloadedBytes = downloaded,
+                            totalBytes = total,
+                        )
+                },
+            )
 
         return downloadResult.fold(
             onSuccess = { file ->
@@ -118,45 +132,61 @@ class DefaultUpdateRepository(
                 }
             },
             onFailure = { error ->
-                _state.value = UpdateState.Error(
-                    message = error.message ?: "Ошибка скачивания файла обновления",
-                    canRetry = true,
-                )
+                _state.value =
+                    UpdateState.Error(
+                        message = error.message ?: "Ошибка скачивания файла обновления",
+                        canRetry = true,
+                    )
                 Result.failure(error)
             },
         )
     }
 
-    override fun installUpdate(apkFile: File, info: UpdateInfo): Result<Unit> {
+    override fun installUpdate(
+        apkFile: File,
+        info: UpdateInfo,
+    ): Result<Unit> {
+        pendingInstall = UpdateState.ReadyToInstall(apkFile, info)
         if (!installerHelper.canInstallPackages()) {
             _state.value = UpdateState.PermissionRequired
             return Result.failure(SecurityException("Требуется разрешение на установку из неизвестных источников"))
         }
 
         _state.value = UpdateState.Installing
-        val sessionResult = installerHelper.startInstallSession(
-            apkFile = apkFile,
-            onStatus = { status, message, userActionIntent ->
-                when (status) {
-                    PackageInstaller.STATUS_PENDING_USER_ACTION -> {
-                        // Ожидание действия пользователя в системном окне
+        val sessionResult =
+            installerHelper.startInstallSession(
+                apkFile = apkFile,
+                onStatus = { status, message, userActionIntent ->
+                    when (status) {
+                        PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                            // Ожидание действия пользователя в системном окне
+                        }
+                        PackageInstaller.STATUS_SUCCESS -> {
+                            _state.value = UpdateState.Idle
+                            // Очистка временного файла
+                            apkFile.delete()
+                        }
+                        else -> {
+                            _state.value =
+                                UpdateState.Error(
+                                    message = message ?: "Установка отменена или завершилась с ошибкой",
+                                    canRetry = true,
+                                )
+                        }
                     }
-                    PackageInstaller.STATUS_SUCCESS -> {
-                        _state.value = UpdateState.Idle
-                        // Очистка временного файла
-                        apkFile.delete()
-                    }
-                    else -> {
-                        _state.value = UpdateState.Error(
-                            message = message ?: "Установка отменена или завершилась с ошибкой",
-                            canRetry = true,
-                        )
-                    }
-                }
-            },
-        )
+                },
+            )
 
         return sessionResult.map { Unit }
+    }
+
+    override fun refreshInstallPermission() {
+        val current = _state.value
+        if (current is UpdateState.PermissionRequired && installerHelper.canInstallPackages()) {
+            pendingInstall?.let { ready ->
+                if (ready.apkFile.isFile) _state.value = ready else _state.value = UpdateState.Idle
+            }
+        }
     }
 
     override fun cancel() {

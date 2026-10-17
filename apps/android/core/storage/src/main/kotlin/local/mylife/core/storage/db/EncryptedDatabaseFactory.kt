@@ -20,7 +20,7 @@ object EncryptedDatabaseFactory {
         passphrase: ByteArray,
         builderCustomizer: (RoomDatabase.Builder<AppDatabase>.() -> Unit)? = null,
     ): AppDatabase {
-        val factory = SupportOpenHelperFactory(passphrase)
+        val factory = SupportOpenHelperFactory(passphrase.clone())
         val builder =
             Room.databaseBuilder(
                 context.applicationContext,
@@ -38,7 +38,7 @@ object EncryptedDatabaseFactory {
         passphrase: ByteArray,
         builderCustomizer: (RoomDatabase.Builder<VaultDatabase>.() -> Unit)? = null,
     ): VaultDatabase {
-        val factory = SupportOpenHelperFactory(passphrase)
+        val factory = SupportOpenHelperFactory(passphrase.clone())
         val builder =
             Room.databaseBuilder(
                 context.applicationContext,

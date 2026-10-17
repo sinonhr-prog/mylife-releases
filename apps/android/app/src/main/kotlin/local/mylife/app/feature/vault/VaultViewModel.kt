@@ -29,7 +29,6 @@ class VaultViewModel(
     private val vaultRepository: VaultRepository,
     private val externalScope: kotlinx.coroutines.CoroutineScope? = null,
 ) : ViewModel() {
-
     private val scope get() = externalScope ?: viewModelScope
 
     private val _uiState = MutableStateFlow(VaultUiState())
@@ -39,20 +38,27 @@ class VaultViewModel(
         loadData()
     }
 
+    fun clearSensitiveState() {
+        viewModelScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        _uiState.value = VaultUiState()
+    }
+
     fun loadData() {
         scope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
                 val list = vaultRepository.getVaultEntries()
-                _uiState.value = _uiState.value.copy(
-                    entries = list,
-                    isLoading = false,
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        entries = list,
+                        isLoading = false,
+                    )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "Не удалось загрузить записи сейфа: ${e.message}",
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = "Не удалось загрузить записи сейфа: ${e.message}",
+                    )
             }
         }
     }
@@ -63,43 +69,47 @@ class VaultViewModel(
 
     fun togglePasswordVisibility(entryId: String) {
         val current = _uiState.value.revealedPasswordIds
-        val updated = if (current.contains(entryId)) {
-            current - entryId
-        } else {
-            current + entryId
-        }
+        val updated =
+            if (current.contains(entryId)) {
+                current - entryId
+            } else {
+                current + entryId
+            }
         _uiState.value = _uiState.value.copy(revealedPasswordIds = updated)
     }
 
     fun openAddEntry() {
-        _uiState.value = _uiState.value.copy(
-            showAddEditDialog = true,
-            editingEntryId = null,
-            draftTitle = "",
-            draftWebsite = "",
-            draftUsername = "",
-            draftPassword = "",
-            draftSecretNote = "",
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                showAddEditDialog = true,
+                editingEntryId = null,
+                draftTitle = "",
+                draftWebsite = "",
+                draftUsername = "",
+                draftPassword = "",
+                draftSecretNote = "",
+            )
     }
 
     fun openEditEntry(entry: VaultEntry) {
-        _uiState.value = _uiState.value.copy(
-            showAddEditDialog = true,
-            editingEntryId = entry.id,
-            draftTitle = entry.title,
-            draftWebsite = entry.website,
-            draftUsername = entry.username,
-            draftPassword = entry.password,
-            draftSecretNote = entry.secretNote,
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                showAddEditDialog = true,
+                editingEntryId = entry.id,
+                draftTitle = entry.title,
+                draftWebsite = entry.website,
+                draftUsername = entry.username,
+                draftPassword = entry.password,
+                draftSecretNote = entry.secretNote,
+            )
     }
 
     fun dismissDialog() {
-        _uiState.value = _uiState.value.copy(
-            showAddEditDialog = false,
-            editingEntryId = null,
-        )
+        _uiState.value =
+            _uiState.value.copy(
+                showAddEditDialog = false,
+                editingEntryId = null,
+            )
     }
 
     suspend fun saveEntry(
@@ -118,42 +128,45 @@ class VaultViewModel(
         val existingId = _uiState.value.editingEntryId
         try {
             val now = System.currentTimeMillis()
-            val entryToSave = if (existingId != null) {
-                val existing = vaultRepository.getVaultEntryById(existingId)
-                val created = existing?.createdAtEpochMs ?: now
-                VaultEntry(
-                    id = existingId,
-                    title = trimmedTitle,
-                    website = website.trim(),
-                    username = username.trim(),
-                    password = password,
-                    secretNote = secretNote.trim(),
-                    createdAtEpochMs = created,
-                    updatedAtEpochMs = now,
-                )
-            } else {
-                VaultEntry(
-                    id = UUID.randomUUID().toString(),
-                    title = trimmedTitle,
-                    website = website.trim(),
-                    username = username.trim(),
-                    password = password,
-                    secretNote = secretNote.trim(),
-                    createdAtEpochMs = now,
-                    updatedAtEpochMs = now,
-                )
-            }
+            val entryToSave =
+                if (existingId != null) {
+                    val existing = vaultRepository.getVaultEntryById(existingId)
+                    val created = existing?.createdAtEpochMs ?: now
+                    VaultEntry(
+                        id = existingId,
+                        title = trimmedTitle,
+                        website = website.trim(),
+                        username = username.trim(),
+                        password = password,
+                        secretNote = secretNote.trim(),
+                        createdAtEpochMs = created,
+                        updatedAtEpochMs = now,
+                    )
+                } else {
+                    VaultEntry(
+                        id = UUID.randomUUID().toString(),
+                        title = trimmedTitle,
+                        website = website.trim(),
+                        username = username.trim(),
+                        password = password,
+                        secretNote = secretNote.trim(),
+                        createdAtEpochMs = now,
+                        updatedAtEpochMs = now,
+                    )
+                }
 
             vaultRepository.saveVaultEntry(entryToSave)
-            _uiState.value = _uiState.value.copy(
-                showAddEditDialog = false,
-                editingEntryId = null,
-            )
+            _uiState.value =
+                _uiState.value.copy(
+                    showAddEditDialog = false,
+                    editingEntryId = null,
+                )
             loadData()
         } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "Ошибка сохранения: ${e.message}",
-            )
+            _uiState.value =
+                _uiState.value.copy(
+                    errorMessage = "Ошибка сохранения: ${e.message}",
+                )
         }
     }
 
@@ -163,9 +176,10 @@ class VaultViewModel(
                 vaultRepository.deleteVaultEntry(id)
                 loadData()
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = "Ошибка удаления: ${e.message}",
-                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        errorMessage = "Ошибка удаления: ${e.message}",
+                    )
             }
         }
     }

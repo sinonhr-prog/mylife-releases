@@ -11,19 +11,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import local.mylife.core.designsystem.components.FocusEmptyState
 import local.mylife.core.designsystem.theme.PaperBackground
 import local.mylife.core.designsystem.theme.PaperForeground
@@ -64,21 +65,27 @@ fun VaultScreen(
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var pendingDelete by remember { mutableStateOf<VaultEntry?>(null) }
 
-    val filteredEntries = remember(state.entries, state.searchQuery) {
-        val q = state.searchQuery.trim().lowercase()
-        if (q.isEmpty()) state.entries
-        else state.entries.filter {
-            it.title.lowercase().contains(q) ||
-                    it.username.lowercase().contains(q) ||
-                    it.website.lowercase().contains(q)
+    val filteredEntries =
+        remember(state.entries, state.searchQuery) {
+            val q = state.searchQuery.trim().lowercase()
+            if (q.isEmpty()) {
+                state.entries
+            } else {
+                state.entries.filter {
+                    it.title.lowercase().contains(q) ||
+                        it.username.lowercase().contains(q) ||
+                        it.website.lowercase().contains(q)
+                }
+            }
         }
-    }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground),
     ) {
         if (state.isLoading && state.entries.isEmpty()) {
             Box(
@@ -89,32 +96,32 @@ fun VaultScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
-                            text = "СЕЙФ (ИЗОЛИРОВАННАЯ СЕССИЯ)",
-                            fontSize = 12.sp,
+                            text = "Ваши пароли",
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = PaperOnSurfaceVariant,
-                            letterSpacing = 1.sp,
+                            color = PaperForeground,
                         )
+                        Text("Выход закроет сейф. Для следующего входа понадобится PIN.", color = PaperOnSurfaceVariant)
                         OutlinedButton(
                             onClick = onLockVault,
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, PaperForeground),
-                            modifier = Modifier.testTag("lock_vault_button"),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("lock_vault_button"),
                         ) {
-                            Text("Заблокировать", fontSize = 11.sp, color = PaperForeground)
+                            Text("Закрыть сейф", color = PaperForeground)
                         }
                     }
                 }
@@ -133,7 +140,7 @@ fun VaultScreen(
                     item {
                         FocusEmptyState(
                             title = if (state.searchQuery.isEmpty()) "Сейф пуст" else "Ничего не найдено",
-                            description = "Храните логины, пароли и секретные заметки в зашифрованной изолированной базе данных.",
+                            description = if (state.searchQuery.isEmpty()) "Добавьте первую запись: сервис, логин и пароль." else "Попробуйте другое название, логин или сайт.",
                             actionText = if (state.searchQuery.isEmpty()) "+ Добавить пароль" else null,
                             onActionClick = { viewModel.openAddEntry() },
                             modifier = Modifier.padding(vertical = 32.dp),
@@ -153,7 +160,7 @@ fun VaultScreen(
                                 SafeClipboardHelper.copySensitive(context, "Логин", entry.username)
                             },
                             onEdit = { viewModel.openEditEntry(entry) },
-                            onDelete = { viewModel.deleteEntry(entry.id) },
+                            onDelete = { pendingDelete = entry },
                         )
                     }
                 }
@@ -162,6 +169,21 @@ fun VaultScreen(
                     Spacer(modifier = Modifier.height(80.dp))
                 }
             }
+        }
+
+        pendingDelete?.let { entry ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text("Удалить запись?") },
+                text = { Text("Запись «" + entry.title + "» будет удалена из сейфа.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.deleteEntry(entry.id)
+                        pendingDelete = null
+                    }) { Text("Удалить") }
+                },
+                dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Отмена") } },
+            )
         }
 
         // Add / Edit Dialog
@@ -199,10 +221,11 @@ fun VaultEntryCard(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = PaperSurface),
         border = BorderStroke(1.dp, PaperOutline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onEdit)
-            .testTag("vault_entry_${entry.id}"),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onEdit)
+                .testTag("vault_entry_${entry.id}"),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -212,12 +235,13 @@ fun VaultEntryCard(
             ) {
                 Text(
                     text = entry.title,
+                    modifier = Modifier.weight(1f),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PaperForeground,
                 )
                 TextButton(onClick = onDelete) {
-                    Text("✕", fontSize = 16.sp, color = PaperOnSurfaceVariant)
+                    Text("Удалить", color = PaperOnSurfaceVariant)
                 }
             }
 
@@ -237,6 +261,7 @@ fun VaultEntryCard(
                 ) {
                     Text(
                         text = "Логин: ${entry.username}",
+                        modifier = Modifier.weight(1f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         color = PaperForeground,
@@ -252,12 +277,11 @@ fun VaultEntryCard(
             }
 
             // Password row
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = if (isPasswordRevealed) entry.password else "••••••••••••",
                         fontSize = 14.sp,
@@ -269,9 +293,12 @@ fun VaultEntryCard(
                         text = if (isPasswordRevealed) "Скрыть" else "Показать",
                         fontSize = 11.sp,
                         color = PaperOnSurfaceVariant,
-                        modifier = Modifier
-                            .clickable { onToggleVisibility() }
-                            .testTag("toggle_pass_${entry.id}"),
+                        modifier =
+                            Modifier
+                                .heightIn(min = 48.dp)
+                                .padding(vertical = 12.dp)
+                                .clickable { onToggleVisibility() }
+                                .testTag("toggle_pass_${entry.id}"),
                     )
                 }
 
@@ -326,7 +353,7 @@ fun VaultEntryDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (errorMessage != null) {
                     Text(errorMessage, color = Color(0xFFC0392B), fontSize = 12.sp)
                 }
@@ -355,30 +382,24 @@ fun VaultEntryDialog(
                     singleLine = true,
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Пароль") },
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        modifier = Modifier.weight(1f).testTag("vault_input_password"),
-                        singleLine = true,
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            password = PasswordGenerator.generatePassword(16)
-                            showPassword = true
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.testTag("generate_password_button"),
-                    ) {
-                        Text("Сгенерировать", fontSize = 10.sp, color = PaperForeground)
-                    }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Пароль") },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth().testTag("vault_input_password"),
+                    singleLine = true,
+                )
+                TextButton(onClick = { showPassword = !showPassword }) {
+                    Text(if (showPassword) "Скрыть пароль" else "Показать пароль", color = PaperForeground)
                 }
+                OutlinedButton(
+                    onClick = {
+                        password = PasswordGenerator.generatePassword(16)
+                        showPassword = true
+                    },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("generate_password_button"),
+                ) { Text("Сгенерировать пароль", color = PaperForeground) }
 
                 OutlinedTextField(
                     value = secretNote,

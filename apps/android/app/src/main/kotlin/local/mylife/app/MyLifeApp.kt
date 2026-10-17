@@ -13,7 +13,7 @@ class MyLifeApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
-        sessionLifecycleManager = SessionLifecycleManager(container.sessionManager)
+        sessionLifecycleManager = SessionLifecycleManager { container.peekSessionManager() }
         registerActivityLifecycleCallbacks(sessionLifecycleManager)
         local.mylife.app.feature.reminders.ReminderNotificationHelper.ensureChannel(this)
     }

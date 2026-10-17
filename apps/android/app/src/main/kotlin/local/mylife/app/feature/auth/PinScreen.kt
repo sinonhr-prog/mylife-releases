@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -44,31 +46,35 @@ fun PinScreen(
         return
     }
 
-    val title = when {
-        state.isSetupRequired && !state.isConfirmStep -> "Придумайте PIN-код"
-        state.isSetupRequired && state.isConfirmStep -> "Повторите PIN-код"
-        state.targetScope == "vault" -> "Вход в Сейф"
-        else -> "Вход в приложение"
-    }
+    val title =
+        when {
+            state.isSetupRequired && !state.isConfirmStep -> "Придумайте PIN-код"
+            state.isSetupRequired && state.isConfirmStep -> "Повторите PIN-код"
+            state.targetScope == "vault" -> "Вход в Сейф"
+            else -> "Вход в приложение"
+        }
 
-    val subtitle = when {
-        state.isSetupRequired && !state.isConfirmStep -> "PIN состоит строго из 6 цифр для защиты ваших данных"
-        state.isSetupRequired && state.isConfirmStep -> "Введите тот же PIN-код для подтверждения"
-        else -> "Введите 6-значный PIN-код"
-    }
+    val subtitle =
+        when {
+            state.isSetupRequired && !state.isConfirmStep -> "PIN состоит строго из 6 цифр для защиты ваших данных"
+            state.isSetupRequired && state.isConfirmStep -> "Введите тот же PIN-код для подтверждения"
+            else -> "Введите 6-значный PIN-код"
+        }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(PaperBackground)
-            .padding(24.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(PaperBackground)
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         // Header Section
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(top = 48.dp),
+            modifier = Modifier.padding(top = 16.dp),
         ) {
             Text(
                 text = title,
@@ -95,11 +101,12 @@ fun PinScreen(
                 for (i in 0 until 6) {
                     val isFilled = i < state.enteredDigits.length
                     Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(if (isFilled) PaperForeground else PaperBackground)
-                            .border(1.5.dp, if (isFilled) PaperForeground else PaperOutline, CircleShape)
+                        modifier =
+                            Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(if (isFilled) PaperForeground else PaperBackground)
+                                .border(1.5.dp, if (isFilled) PaperForeground else PaperOutline, CircleShape),
                     )
                 }
             }
@@ -119,18 +126,20 @@ fun PinScreen(
 
         // Keypad Section
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val rows = listOf(
-                listOf('1', '2', '3'),
-                listOf('4', '5', '6'),
-                listOf('7', '8', '9'),
-                listOf(null, '0', '⌫'),
-            )
+            val rows =
+                listOf(
+                    listOf('1', '2', '3'),
+                    listOf('4', '5', '6'),
+                    listOf('7', '8', '9'),
+                    listOf(null, '0', '⌫'),
+                )
 
             for (row in rows) {
                 Row(
@@ -167,12 +176,13 @@ private fun KeypadButton(
     onClick: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .size(72.dp)
-            .clip(CircleShape)
-            .background(if (isAction) PaperBackground else PaperSurface)
-            .border(1.dp, PaperOutline, CircleShape)
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(if (isAction) PaperBackground else PaperSurface)
+                .border(1.dp, PaperOutline, CircleShape)
+                .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(

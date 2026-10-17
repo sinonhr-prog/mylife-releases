@@ -21,8 +21,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -54,13 +52,15 @@ fun FocusCard(
 ) {
     Card(
         shape = RoundedCornerShape(19.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = PaperFocusCardBackground,
-            contentColor = PaperFocusCardForeground,
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCardClick),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = PaperFocusCardBackground,
+                contentColor = PaperFocusCardForeground,
+            ),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onCardClick),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -122,10 +122,11 @@ fun FocusCard(
                     onClick = onActionClick,
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, PaperFocusCardButtonBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = PaperFocusCardForeground,
-                    ),
-                    modifier = Modifier.defaultMinSize(minHeight = 44.dp),
+                    colors =
+                        ButtonDefaults.outlinedButtonColors(
+                            contentColor = PaperFocusCardForeground,
+                        ),
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                 ) {
                     Text(
                         text = actionText,
@@ -149,9 +150,10 @@ fun SectionHeader(
     onActionClick: () -> Unit = {},
 ) {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -166,7 +168,7 @@ fun SectionHeader(
         if (actionText != null) {
             TextButton(
                 onClick = onActionClick,
-                modifier = Modifier.defaultMinSize(minHeight = 44.dp),
+                modifier = Modifier.defaultMinSize(minHeight = 48.dp),
             ) {
                 Text(
                     text = actionText,
@@ -196,9 +198,10 @@ fun FocusEmptyState(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -224,7 +227,7 @@ fun FocusEmptyState(
                     onClick = onActionClick,
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, PaperForeground),
-                    modifier = Modifier.defaultMinSize(minHeight = 44.dp),
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                 ) {
                     Text(
                         text = actionText,
@@ -250,9 +253,10 @@ fun RatingBadge(
         shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, PaperOutline),
         color = PaperSurface,
-        modifier = modifier.semantics {
-            contentDescription = "Рейтинг $rating из 10"
-        },
+        modifier =
+            modifier.semantics {
+                contentDescription = "Рейтинг $rating из 10"
+            },
     ) {
         Text(
             text = "★ $rating/10",
