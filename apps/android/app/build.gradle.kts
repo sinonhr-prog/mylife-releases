@@ -30,18 +30,38 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrBlank()) {
+                val keystoreFile = rootProject.file(keystorePath)
+                require(keystoreFile.isFile) { "Signing keystore is missing" }
+                storeFile = keystoreFile
+                storePassword = requireNotNull(System.getenv("KEYSTORE_PASSWORD")) { "KEYSTORE_PASSWORD is required" }
+                keyAlias = requireNotNull(System.getenv("KEY_ALIAS")) { "KEY_ALIAS is required" }
+                keyPassword = requireNotNull(System.getenv("KEY_PASSWORD")) { "KEY_PASSWORD is required" }
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
         }
         release {
+            applicationIdSuffix = providers.gradleProperty("releaseApplicationIdSuffix").orElse("").get().also {
+                require(it == "" || it == ".debug") { "Unsupported release application ID suffix" }
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

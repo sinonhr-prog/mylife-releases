@@ -292,3 +292,12 @@
 - Статическая проверка проекта: `verify-project.mjs` — PASS (82 Markdown-файла, 246 локальных ссылок).
 - Контрольная точка: все 4 обязательных критерия H02 пройдены (PASS). Для выполнения команды `close` требуется подтверждение владельцем/специалистом ручного решения `crypto-design-review` в `harness/decisions.json`. До получения решения реализация H02 остановлена на границе разрешённого диапазона.
 
+
+## Подпись тестового канала — 17.10.2026
+
+- Отдельное поручение владельца, runId 20261017-sol-signing-followup; модель gpt-6.1-sol operator-confirmed. H10/H11 не закрывались.
+- Исправлены KEYSTORE_PATH, обязательные пароли без defaults, временный keystore CI с очисткой, .debug package для совместимого тестового release-варианта и проверка apksigner до assets. Существующая чужая signing-правка сохранена и доработана.
+- По просьбе владельца создан совместимый JKS-контейнер исходного локального debug-ключа с заданными паролями/alias. Сертификат сохранён. Обновлён ignored TXT; ключи/пароли/Base64 в Git не добавлены. SIGN-002 неверного пароля устранён.
+- Выполнено: manifest tests8/8; harness tests15/15; release app unit43/43, skips0; release lint0 Error/Fatal; offline unsigned и signed assembleRelease PASS; APK local.mylife.debug / 20 / 0.1.20 / minSdk29 / debuggable=false; apksigner PASS, сертификат совпадает с исходным debug-keystore; metadata/hash из реального APK.
+- Не выполнено: перенос НОВОГО Base64 в GitHub, удалённый CI с ним, публикация, установка/обновление на Vivo/API29, полная security/privacy/restore-приёмка. Публикация остановлена до синхронизации ключа и релизных контрольных точек. SIGN-003 — открытая проверка package-prefix в runtime verifier.
+- Evidence и handoff: harness/runs/20261017-sol-signing-followup-evidence.txt и harness/runs/20261017-sol-signing-followup-handoff.md. Локальная версия20 — проверочный candidate, не опубликованная версия.

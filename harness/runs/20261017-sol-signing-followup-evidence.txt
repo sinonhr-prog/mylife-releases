@@ -1,0 +1,20 @@
+# Signing follow-up: sanitized evidence
+
+RunId: 20261017-sol-signing-followup; 2026-10-17; model gpt-6.1-sol, operator-confirmed. Baseline HEAD 96b560a. Scope: signing configuration and local candidate, no H10/H11 closure.
+
+PASS GitHub UI inspection: four secret names present. Values not retrievable. Owner confirmed TXT values matched GitHub before repair.
+FAIL initial keytool exportcert: supplied store password did not open provided Base64. No password guessing. Owner then explicitly requested keystore creation.
+PASS keytool importkeystore: original known local debug key imported into new JKS with owner-supplied desired passwords/alias. Original untouched. Original/imported certificate DER hashes equal.
+PASS ignored TXT updated with new Base64; other three values retained. Keys, passwords, Base64 and local logs excluded from evidence/Git.
+PASS node --test .github/scripts/generate-update-manifest.test.mjs: 8 tests, zero failures/skips.
+PASS node --test scripts/harness.test.mjs: 15 tests, zero failures/skips.
+PASS node scripts/verify-project.mjs; node scripts/harness.mjs validate; git diff --check.
+PASS offline unsigned Gradle :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease -PreleaseApplicationIdSuffix=.debug -PappVersionCode=20 -PappVersionName=0.1.20; exit 0, BUILD SUCCESSFUL in 1m45s. Cwd P:/apps/android maps existing workspace.
+PASS fresh release unit XML: 43 tests, zero failures/errors/skips. Release lint XML zero Error/Fatal.
+PASS signed Gradle :app:assembleRelease with same properties, offline, explicit local KEYSTORE_PATH and passwords in environment; exit0. Secret output retained only in ignored private logs, not copied into reports.
+PASS apksigner verify --verbose --print-certs: signed APK valid, certificate SHA256 80cc41898008cd80a942a22f555654965b2eb874273c0da34e7970d928559e71 matches original local debug key.
+PASS aapt2 dump badging: local.mylife.debug / versionCode20 / versionName0.1.20 / minSdk29; application-debuggable absent.
+PASS generate-update-manifest.mjs on actual signed APK: preview metadata generated from binary; size20640801, SHA256 e90970327c22101c4f46ab3e658a5010a20199c69398d902122bea9d741c8536.
+PASS git check-ignore: private keystore and TXT ignored. No secret file in git status.
+
+NOT_RUN: updating regenerated Base64 in GitHub; remote workflow with repaired key; publication; installed-device certificate recheck and V1-to-V2 upgrade; API29/full release privacy/backup/restore/security gates and independent review. Existing verifier package-prefix finding SIGN-003 remains open. No device or user database access performed.

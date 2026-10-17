@@ -1,3 +1,14 @@
+# Последний checkpoint: подпись тестового канала — 17.10.2026
+
+- RunId 20261017-sol-signing-followup; gpt-6.1-sol operator-confirmed владельцем в текущем чате. Отдельный scope signing, не закрытие H10/H11. Чужая uncommitted signing-правка сохранена и доработана.
+- По просьбе владельца создан совместимый JKS исходного debug-ключа, с паролями/alias из подтверждённого TXT. Сертификат сохранён. Новый Base64 записан в ignored private/github-actions-secrets.txt и private/KEYSTORE_BASE64.txt; исходный ключ не изменён. Не читать/выводить значения в чат или evidence.
+- PASS: manifest8/8, harness15/15, app release unit43/43/skips0, lintRelease0 errors, unsigned и signed offline assembleRelease. APK code20/name0.1.20/package local.mylife.debug/minSdk29/debuggable=false; apksigner PASS, сертификат совпадает с исходным debug-keystore. Проверочная версия20 не опубликована и не установлена.
+- CI исправлен для явного временного KEYSTORE_PATH и обязательных параметров, очистки keystore, release package .debug и apksigner перед assets. Реальный GitHub CI NOT_RUN. Push не выполнялся, так как запускает публикацию.
+- Следующий шаг: заменить только KEYSTORE_BASE64 на GitHub из обновлённого локального TXT (остальные3 сохранены), затем проверить удалённый подписанный candidate. Browser clipboard не получает Windows clipboard; установка API encryption dependency ранее отклонена auto-review, обходить отказ нельзя. Можно дать владельцу скопировать обновлённое значение либо отдельно согласовать установку.
+- Подпись/metadata локально проверены, live Vivo certificate/version/upgrade и полный release gate NOT_RUN. real-secrets-review/personal-release pending; SIGN-003 package-prefix остаётся открытым отдельным замечанием. Защиту не ослаблять, приложение не удалять/данные не очищать.
+- Контекст: [handoff](runs/20261017-sol-signing-followup-handoff.md), [evidence](runs/20261017-sol-signing-followup-evidence.txt), ERRORS SIGN-001/002/003, ENV-012…015. Lock освобождается командой harness unlock после checkpoint; перед продолжением проверить актуальный lock.
+
+---
 # Контекст для следующего запуска
 
 ## Публикация разрешена и выполнена — 17.10.2026

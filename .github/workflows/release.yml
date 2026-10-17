@@ -96,11 +96,17 @@ jobs:
         run: |
           cd apps/android
           if [ -n "$KEYSTORE_BASE64" ]; then
+            test -n "$KEYSTORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+            umask 077
+            export KEYSTORE_PATH="$RUNNER_TEMP/mylife-signing.keystore"
+            trap 'rm -f "$KEYSTORE_PATH"' EXIT
             echo "Signing config provided: building release APK"
-            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
-            ./gradlew assembleRelease -PappVersionCode="${{ steps.version_info.outputs.version_code }}" -PappVersionName="${{ steps.version_info.outputs.version_name }}"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+            ./gradlew assembleRelease -PreleaseApplicationIdSuffix=.debug -PappVersionCode="${{ steps.version_info.outputs.version_code }}" -PappVersionName="${{ steps.version_info.outputs.version_name }}"
             APK_SRC="app/build/outputs/apk/release/app-release.apk"
-            APP_ID="local.mylife"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK_SRC"
+            APP_ID="local.mylife.debug"
+            echo "SIGNED_CHANNEL=true" >> "$GITHUB_ENV"
           else
             echo "No signing secret configured: building debug APK for distribution"
             ./gradlew assembleDebug -PappVersionCode="${{ steps.version_info.outputs.version_code }}" -PappVersionName="${{ steps.version_info.outputs.version_name }}"
@@ -136,7 +142,7 @@ jobs:
 
       - name: Publish GitHub Release
         # CI debug keys cannot update an existing installation. Keep debug builds as artifacts.
-        if: env.APP_ID == 'local.mylife' && (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.force_release == 'true' || github.event_name == 'push')
+        if: env.SIGNED_CHANNEL == 'true' && (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.force_release == 'true' || github.event_name == 'push')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}

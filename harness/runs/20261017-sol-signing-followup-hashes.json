@@ -1,0 +1,22 @@
+{
+  "runId": "20261017-sol-signing-followup",
+  "observedAt": "2026-10-17T14:29:32.0676949Z",
+  "model": "gpt-6.1-sol",
+  "identitySource": "operator-confirmed",
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "a274e78c282e974567c5bc11dc0229b3b4a56f8798543904194dc6a2de9afbfd",
+  "files": [
+    {
+      "path": ".github/workflows/release.yml",
+      "sha256": "42803a6e7026d4bddebdc64c8161274cbee2f9624cb6cae65a3c45b481f8f979"
+    },
+    {
+      "path": "apps/android/app/build.gradle.kts",
+      "sha256": "c53d4876050afdf2b43510186094d4442c8d97f616ae721bde0f06de97951e87"
+    },
+    {
+      "path": "harness/runs/20261017-sol-signing-followup-evidence.txt",
+      "sha256": "3187c94b15eb70228c728ecaa2c53716a295a4a803c19f2f6e81874dc1c1da85"
+    }
+  ]
+}
