@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261017-141500-gemini-h05",
+  "phase": "H05",
+  "model": "gemini-3.8-flash",
+  "identitySource": "runtime-metadata",
+  "identityRef": "USER_SETTINGS_CHANGE: Model Selection -> Gemini 3.8 Flash (Medium) normalized to gemini-3.8-flash per harness/MODEL_ROUTING.md",
+  "authorizationRef": "USER_REQUEST: Владелец поручил продолжать разработку и публиковать изменения на GitHub на согласованный диапазон H01-H10 (harness/decisions.json)",
+  "startedAt": "2026-10-17T11:15:19.000Z",
+  "completedAt": "2026-10-17T11:23:00.000Z",
+  "status": "READY_FOR_GATE",
+  "completedSteps": [
+    "H05.1",
+    "H05.2",
+    "H05.3",
+    "H05.4"
+  ],
+  "changedPaths": [
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/backup/LifeVaultArchiveService.kt",
+    "apps/android/core/storage/src/test/kotlin/local/mylife/core/storage/backup/LifeVaultArchiveServiceTest.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/crypto/KeyEnvelopeManager.kt",
+    "docs/STATUS.md",
+    "harness/CURRENT.md",
+    "harness/runs/20261017-141500-gemini-h05-handoff.md",
+    "harness/runs/evidence-H05-archive-roundtrip.txt",
+    "harness/runs/evidence-H05-archive-negative.txt",
+    "harness/runs/evidence-H05-restore-atomic.txt",
+    "harness/runs/evidence-H05-archive-private.txt"
+  ],
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "0dbd96c91b92394ce035153ce2779804aa725eb56065523d908b08bc0ca792fb",
+  "handoffPath": "harness/runs/20261017-141500-gemini-h05-handoff.md",
+  "checks": [
+    {
+      "id": "archive-roundtrip",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testArchiveRoundtrip_FullExportAndRestoreOnCleanDevice",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:20:00.000Z",
+      "evidencePath": "harness/runs/evidence-H05-archive-roundtrip.txt",
+      "sha256": "22bdc85d7523d87af9f4734caf05b44cb0e48d4d550c03a3d80924094975a670"
+    },
+    {
+      "id": "archive-negative",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:20:00.000Z",
+      "evidencePath": "harness/runs/evidence-H05-archive-negative.txt",
+      "sha256": "491764c71f291ad81c86024cc1049910968990c5c410e797bb8871d873685530"
+    },
+    {
+      "id": "restore-atomic",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testRestoreAtomic_FailurePreservesExistingData",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:20:00.000Z",
+      "evidencePath": "harness/runs/evidence-H05-restore-atomic.txt",
+      "sha256": "0d9d12679e24db39fed27d9cd0fbe58528cb163979cd53e48640f1b779a4d4a0"
+    },
+    {
+      "id": "archive-private",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testArchivePrivate_NoPlaintextLeaksInCache",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:20:00.000Z",
+      "evidencePath": "harness/runs/evidence-H05-archive-private.txt",
+      "sha256": "0937229d4e70cdda329f131ae97b7a0494afb279e8abe48e2714383bb86090b1"
+    }
+  ]
+}

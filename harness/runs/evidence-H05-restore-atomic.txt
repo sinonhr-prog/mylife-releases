@@ -1,0 +1,26 @@
+# EVIDENCE: restore-atomic
+# Phase: H05 (Ранний переносимый архив и восстановление)
+# Step: H05.2 / H05.3 (Реализовать безопасный импорт / Проверить все неуспешные ветки)
+# RunId: 20261017-141500-gemini-h05
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:20:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.backup.LifeVaultArchiveServiceTest`
+- Test Method: `testRestoreAtomic_FailurePreservesExistingData`
+- Command: `.\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testRestoreAtomic_FailurePreservesExistingData`
+- Working Directory: `P:\apps\android`
+- Result: PASS (Execution time: 0.586s)
+
+## 2. Verification Details
+1. Target State Before Restore:
+   - Target device B has active database (`main.db` containing `EXISTING_UNTOUCHED_PRODUCTION_DATA`) and valid key envelopes configured for PIN `445566`.
+2. Interrupted / Failed Restore Simulation:
+   - Malformed/broken archive stream injected during restore.
+   - Decryption / unpacking throws security exception during processing.
+3. Post-Failure State Verification:
+   - Pre-existing target database `main.db` remains completely untouched.
+   - Content verified byte-for-byte identical to original production data.
+   - Existing PIN envelopes remain valid and unlock correctly with existing PIN `445566`.
+   - Temporary staging directories automatically cleaned up; no partial corrupted database replaces production.

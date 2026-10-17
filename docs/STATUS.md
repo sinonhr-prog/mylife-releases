@@ -1,6 +1,23 @@
 # Текущий статус
 
-17.10.2026: проектный пакет, Android-код, Wrapper, debug APK, криптографическая подсистема, обновлятор и зашифрованное хранилище Room+SQLCipher существуют. H00, H01, H02, H03 закрыты; H04 (Схемы, репозитории и зашифрованные файлы) реализован и проверен. Владелец утвердил **«Бумага / Фокус»**, главную-дашборд, выдвижное меню слева, политику 6-значного PIN, публикацию изменений на GitHub и расширил диапазон до H10.
+17.10.2026: проектный пакет, Android-код, Wrapper, debug APK, криптографическая подсистема, обновлятор, зашифрованное хранилище Room+SQLCipher и сервис переносимого архива .lifevault существуют. H00, H01, H02, H03, H04 закрыты; H05 (Ранний переносимый архив и восстановление) реализован и проверен. Владелец утвердил **«Бумага / Фокус»**, главную-дашборд, выдвижное меню слева, политику 6-значного PIN, публикацию изменений на GitHub и расширил диапазон до H10.
+
+## Реализация H05: Ранний переносимый архив и восстановление — 17.10.2026
+
+- RunId `20261017-141500-gemini-h05`, модель `gemini-3.8-flash`, источник `runtime-metadata` / `operator-confirmed`.
+- Реализованы:
+  - `LifeVaultArchiveService.kt`: экспорт и импорт зашифрованного архива `.lifevault` (magic `LIFEV1\0`, version `0x01`, Argon2id KDF 64 MiB, Tink Streaming AEAD, канонический ZIP с манифестом SHA-256 и ключами БД).
+  - Защита от DoS KDF (лимиты `memoryKiB <= 128 MiB`, `iterations <= 10`, `parallelism <= 4`).
+  - Защита от Zip Slip / Path Traversal и Decompression Bomb.
+  - Атомарное восстановление через staging-каталог с re-wrapping ключей новым 6-значным PIN целевого устройства (`KeyEnvelopeManager.restoreKeysWithNewPin`).
+- Проверки:
+  - `archive-roundtrip` — PASS (`LifeVaultArchiveServiceTest.testArchiveRoundtrip_FullExportAndRestoreOnCleanDevice`, 1.816s).
+  - `archive-negative` — PASS (отклонение неверной фразы, порчи данных, усечения, DoS).
+  - `restore-atomic` — PASS (сбой импорта сохраняет существующие базы нетронутыми).
+  - `archive-private` — PASS (очистка staging из кэша, zeroization ключей в памяти).
+  - `verify-project.mjs` — PASS.
+  - `harness validate` — PASS.
+- Следующий этап: H06 (Главная в стиле «Бумага / Фокус»).
 
 ## Реализация H04: Схемы, репозитории и зашифрованные файлы — 17.10.2026
 

@@ -1,0 +1,34 @@
+# EVIDENCE: archive-negative
+# Phase: H05 (Ранний переносимый архив и восстановление)
+# Step: H05.3 (Проверить все неуспешные ветки)
+# RunId: 20261017-141500-gemini-h05
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:20:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.backup.LifeVaultArchiveServiceTest`
+- Test Methods:
+  - `testArchiveNegative_WrongPassphrase` (0.813s)
+  - `testArchiveNegative_TamperedCiphertext` (0.818s)
+  - `testArchiveNegative_TruncatedArchive` (0.833s)
+  - `testArchiveNegative_InvalidHeaderAndKdfBounds` (0.012s)
+- Command: `.\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest`
+- Working Directory: `P:\apps\android`
+- Result: PASS
+
+## 2. Verification Details
+1. Wrong Passphrase Rejection:
+   - Archive encrypted with valid passphrase fails with `GeneralSecurityException` (AEAD BadTag) when supplied with wrong passphrase.
+2. Tampered Payload:
+   - Single-bit corruption in ciphertext payload stream is detected by Tink Streaming AEAD; decryption terminates with exception before corrupt data touches staging or production.
+3. Truncated Archive:
+   - Premature stream truncation is detected and fails safely.
+4. Header Magic & Version:
+   - Corrupted magic header (`BADMAG\0`) rejected immediately with `GeneralSecurityException: Invalid archive magic header`.
+5. DoS Parameter Defense:
+   - Malicious archive header requesting excessive Argon2id memory (10 GiB, 100 iterations) rejected immediately by bounded limits (`MAX_KDF_MEMORY_KIB = 131072`, `MAX_KDF_ITERATIONS = 10`) before invoking KDF.
+6. Path Traversal & Zip Slip:
+   - Anti-traversal check rejects entries containing `..` or absolute paths (`/`, `\`), preventing writes outside staging directory.
+7. Decompression Bomb Defense:
+   - Maximum entry count (50,000) and uncompressed byte size limit (500 MiB) enforced.

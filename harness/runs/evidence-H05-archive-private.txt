@@ -1,0 +1,28 @@
+# EVIDENCE: archive-private
+# Phase: H05 (Ранний переносимый архив и восстановление)
+# Step: H05.1 / H05.2 (Сделать согласованный экспорт / Реализовать безопасный импорт)
+# RunId: 20261017-141500-gemini-h05
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:20:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.backup.LifeVaultArchiveServiceTest`
+- Test Method: `testArchivePrivate_NoPlaintextLeaksInCache`
+- Command: `.\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testArchivePrivate_NoPlaintextLeaksInCache`
+- Working Directory: `P:\apps\android`
+- Result: PASS (Execution time: 1.598s)
+
+## 2. Verification Details
+1. Cache Cleanup on Export:
+   - Source device cache directory inspected immediately after export completes.
+   - All intermediate staging zip files deleted (`staging_export_*.zip`).
+   - Zero plaintext or staging files lingering in cache.
+2. Cache Cleanup on Restore:
+   - Target device cache directory inspected immediately after restore completes.
+   - All intermediate staging restore directories (`staging_restore_*`) deleted recursively in `finally` block.
+   - Zero files remaining in target cache.
+3. In-Memory Key Zeroization:
+   - Passphrase byte arrays, derived KDF keys, and intermediate raw key arrays explicitly wiped using `Arrays.fill(bytes, 0.toByte())` in `finally` blocks.
+4. Keystore Independence:
+   - Restored database keys wrapped with target device Keystore; no reliance or persistent reference to old device's Keystore or old device's PIN.

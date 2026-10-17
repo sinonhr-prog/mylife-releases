@@ -1,0 +1,32 @@
+# EVIDENCE: archive-roundtrip
+# Phase: H05 (Ранний переносимый архив и восстановление)
+# Step: H05.1 / H05.4 (Сделать согласованный экспорт / Восстановить на чистом устройстве)
+# RunId: 20261017-141500-gemini-h05
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:20:00Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.backup.LifeVaultArchiveServiceTest`
+- Test Method: `testArchiveRoundtrip_FullExportAndRestoreOnCleanDevice`
+- Command: `.\gradlew.bat :core:storage:testDebugUnitTest --tests local.mylife.core.storage.backup.LifeVaultArchiveServiceTest.testArchiveRoundtrip_FullExportAndRestoreOnCleanDevice`
+- Working Directory: `P:\apps\android`
+- Result: PASS (Execution time: 1.816s)
+
+## 2. Verification Details
+1. Synthetic Data Setup on Source Device (A):
+   - Created synthetic encrypted databases `main.db` and `vault.db`.
+   - Created encrypted attachments and thumbnails (`img1.bin`, `img2.bin`, `img1_thumb.bin`).
+   - Configured Device A 6-digit PIN envelope (`112233`) with Argon2id + Keystore AES-256-GCM.
+2. Export Archive:
+   - Exported archive with user passphrase: `CorrectHorseBatteryStaple2026!`.
+   - Magic bytes verified: `LIFEV1\0` (format version `0x01`).
+   - Database encryption keys sealed inside encrypted ZIP stream via Tink Streaming AEAD.
+   - Archive manifest generated with SHA-256 integrity hashes for all entries.
+3. Clean Restore on Device (B):
+   - Device B initialized with empty directories and isolated `DeviceKeyProvider`.
+   - Restored archive using passphrase and target device PIN (`445566`).
+   - All databases, attachments, and thumbnails restored with exact byte-for-byte SHA-256 matching.
+   - Device B key envelopes re-wrapped with Device B Keystore and new PIN (`445566`).
+   - Verified Device B opens both `main.db` and `vault.db` with PIN `445566`.
+   - Verified Device A PIN (`112233`) is strictly rejected on Device B.

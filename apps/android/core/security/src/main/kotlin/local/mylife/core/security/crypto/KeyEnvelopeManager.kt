@@ -91,6 +91,15 @@ class KeyEnvelopeManager(
         return Pair(mainDbKey, vaultDbKey)
     }
 
+    fun restoreKeysWithNewPin(pin: String, mainDbKey: ByteArray, vaultDbKey: ByteArray) {
+        require(PinPolicy.isValidPin(pin)) { "PIN must be exactly 6 digits" }
+        require(mainDbKey.size == 32) { "Invalid main DB key length: ${mainDbKey.size}" }
+        require(vaultDbKey.size == 32) { "Invalid vault DB key length: ${vaultDbKey.size}" }
+
+        createAndSaveEnvelope(KeyScope.MAIN, pin, mainDbKey)
+        createAndSaveEnvelope(KeyScope.VAULT, pin, vaultDbKey)
+    }
+
     fun unlockScope(scope: KeyScope, pin: String): ByteArray {
         require(PinPolicy.isValidPin(pin)) { "PIN must be exactly 6 digits" }
 
