@@ -1,0 +1,146 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Update channel (stable or preview)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - preview
+      force_release:
+        description: 'Force creating a GitHub release on manual dispatch'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Test Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify repository structure & static checks
+        run: node scripts/verify-project.mjs
+
+      - name: Set up JDK 17 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x apps/android/gradlew
+
+      - name: Run Unit Tests
+        run: |
+          cd apps/android
+          ./gradlew testDebugUnitTest
+
+      - name: Extract Version Info
+        id: version_info
+        run: |
+          # Read version from git tag or fallback to commit count
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            RAW_TAG="${GITHUB_REF#refs/tags/v}"
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+            RAW_TAG="0.1.${COMMIT_COUNT}"
+            TAG_NAME="v${RAW_TAG}"
+          fi
+          
+          echo "version_name=${RAW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version_code=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          
+          CHANNEL="${{ inputs.channel }}"
+          if [ -z "$CHANNEL" ]; then
+            CHANNEL="stable"
+          fi
+          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Android APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd apps/android
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Signing config provided: building release APK"
+            echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
+            ./gradlew assembleRelease
+            APK_SRC="app/build/outputs/apk/release/app-release.apk"
+            APP_ID="local.mylife"
+          else
+            echo "No signing secret configured: building debug APK for distribution"
+            ./gradlew assembleDebug
+            APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
+            APP_ID="local.mylife.debug"
+          fi
+          
+          echo "APK_SRC=apps/android/${APK_SRC}" >> "$GITHUB_ENV"
+          echo "APP_ID=${APP_ID}" >> "$GITHUB_ENV"
+
+      - name: Prepare Release Assets & Generate update.json
+        run: |
+          mkdir -p release_assets
+          cp "${APK_SRC}" release_assets/mylife.apk
+          
+          node .github/scripts/generate-update-manifest.mjs \
+            release_assets/mylife.apk \
+            "${{ steps.version_info.outputs.version_name }}" \
+            "${{ steps.version_info.outputs.version_code }}" \
+            "${{ steps.version_info.outputs.channel }}" \
+            "${APP_ID}"
+
+      - name: Upload Artifacts to Workflow Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: mylife-release-${{ steps.version_info.outputs.tag_name }}
+          path: |
+            release_assets/mylife.apk
+            release_assets/update.json
+            release_assets/SHA256SUMS
+          retention-days: 14
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.force_release == 'true' || github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version_info.outputs.tag_name }}
+          name: "Релиз Моя жизнь ${{ steps.version_info.outputs.tag_name }}"
+          draft: false
+          prerelease: ${{ steps.version_info.outputs.channel == 'preview' }}
+          generate_release_notes: true
+          files: |
+            release_assets/mylife.apk
+            release_assets/update.json
+            release_assets/SHA256SUMS
