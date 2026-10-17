@@ -71,8 +71,12 @@ import local.mylife.app.feature.tasks.TasksScreen
 import local.mylife.app.feature.tasks.TasksViewModel
 import local.mylife.app.feature.reminders.RemindersScreen
 import local.mylife.app.feature.reminders.RemindersViewModel
+import local.mylife.app.feature.settings.backup.BackupScreen
+import local.mylife.app.feature.settings.backup.BackupViewModel
 import local.mylife.app.feature.settings.updater.UpdateScreen
 import local.mylife.app.feature.settings.updater.UpdateViewModel
+import local.mylife.app.feature.vault.VaultScreen
+import local.mylife.app.feature.vault.VaultViewModel
 import local.mylife.core.designsystem.components.FocusEmptyState
 import local.mylife.core.designsystem.theme.MyLifeTheme
 import local.mylife.core.designsystem.theme.PaperBackground
@@ -214,7 +218,8 @@ fun MainDashboardShell(
     )
 
     val secondaryDrawerItems = listOf(
-        DrawerItem("Настройки", "Настройки", "⚙"),
+        DrawerItem("Резервные копии", "Резервные копии", "💾"),
+        DrawerItem("Настройки", "Настройки (Обновления)", "⚙"),
     )
 
     // Window security: only active in Vault or PIN
@@ -408,6 +413,15 @@ fun MainDashboardShell(
                             IconButton(onClick = { remindersViewModel.openAddReminder() }) {
                                 Text("+", fontSize = 24.sp, color = PaperForeground)
                             }
+                        } else if (selectedCategory == "Сейф") {
+                            val vaultKey = (currentSessionState as? SessionState.VaultUnlocked)?.vaultDbKey
+                            if (vaultKey != null) {
+                                val vaultSession = app.container.getVaultStorageSession(vaultKey)
+                                val vaultVm = VaultViewModel(vaultSession.vaultRepository)
+                                IconButton(onClick = { vaultVm.openAddEntry() }) {
+                                    Text("+", fontSize = 24.sp, color = PaperForeground)
+                                }
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -437,6 +451,14 @@ fun MainDashboardShell(
                                     "Задачи" -> tasksViewModel.openAddTask()
                                     "Заметки" -> notesViewModel.openAddNote()
                                     "Напоминания" -> remindersViewModel.openAddReminder()
+                                    "Сейф" -> {
+                                        val vaultKey = (currentSessionState as? SessionState.VaultUnlocked)?.vaultDbKey
+                                        if (vaultKey != null) {
+                                            val vaultSession = app.container.getVaultStorageSession(vaultKey)
+                                            val vaultVm = VaultViewModel(vaultSession.vaultRepository)
+                                            vaultVm.openAddEntry()
+                                        }
+                                    }
                                     else -> showQuickAddDialog = true
                                 }
                             },
@@ -510,52 +532,55 @@ fun MainDashboardShell(
                         }
                     }
 
-                    "Сейф" -> {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                        ) {
-                            Text(
-                                text = "СЕЙФ (ИЗОЛИРОВАННАЯ СЕССИЯ)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = PaperOnSurfaceVariant,
-                                letterSpacing = 1.sp,
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Card(
-                                colors = CardDefaults.cardColors(containerColor = PaperSurface),
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = "Сейф разблокирован",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = PaperForeground,
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "Отдельная база данных и сессия активны. При выходе в меню Сейф будет автоматически заблокирован.",
-                                        fontSize = 12.sp,
-                                        color = PaperOnSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.height(14.dp))
-                                    OutlinedButton(
-                                        onClick = {
-                                            sessionManager.lockVault()
-                                            currentSessionState = sessionManager.getSessionState()
-                                            onSessionChanged(currentSessionState)
-                                            selectedCategory = "Главная"
-                                        },
-                                        shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, PaperForeground),
-                                    ) {
-                                        Text("Заблокировать сейф", color = PaperForeground)
-                                    }
+                    "Резервные копии" -> {
+                        val vaultKey = (currentSessionState as? SessionState.VaultUnlocked)?.vaultDbKey
+                            ?: ByteArray(32) // Fallback for inspect / UI if vault not unlocked yet
+                        val backupViewModel = remember(mainDbKey, vaultKey) {
+                            BackupViewModel(
+                                context = app,
+                                mainDbKey = mainDbKey,
+                                vaultDbKey = vaultKey,
+                                onRestoreCompleted = {
+                                    sessionManager.lockAll()
+                                    currentSessionState = sessionManager.getSessionState()
+                                    onSessionChanged(currentSessionState)
                                 }
+                            )
+                        }
+                        BackupScreen(
+                            viewModel = backupViewModel,
+                            onBack = { selectedCategory = "Главная" },
+                        )
+                    }
+
+                    "Сейф" -> {
+                        val vaultKey = (currentSessionState as? SessionState.VaultUnlocked)?.vaultDbKey
+                        if (vaultKey != null) {
+                            val vaultSession = remember(vaultKey) { app.container.getVaultStorageSession(vaultKey) }
+                            val vaultViewModel = remember(vaultSession) { VaultViewModel(vaultSession.vaultRepository) }
+                            VaultScreen(
+                                viewModel = vaultViewModel,
+                                onLockVault = {
+                                    sessionManager.lockVault()
+                                    currentSessionState = sessionManager.getSessionState()
+                                    onSessionChanged(currentSessionState)
+                                    selectedCategory = "Главная"
+                                },
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(24.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                FocusEmptyState(
+                                    title = "Сейф заблокирован",
+                                    description = "Для доступа к паролям требуется отдельная авторизация.",
+                                    actionText = "Разблокировать",
+                                    onActionClick = {
+                                        // Trigger vault pin dialog
+                                        selectedCategory = "Сейф"
+                                    }
+                                )
                             }
                         }
                     }

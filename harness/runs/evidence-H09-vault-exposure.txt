@@ -1,0 +1,16 @@
+=== EVIDENCE: H09 vault-exposure ===
+Date: 2026-10-17T17:00:00+03:00
+Test: local.mylife.app.feature.vault.VaultFlowTest.testVaultExposure_SafeClipboardConstants, MainActivity window security review
+Result: PASS
+Details:
+- Window Security (FLAG_SECURE):
+  * WindowManager.LayoutParams.FLAG_SECURE is dynamically activated during Vault interaction and PIN entry.
+  * Screenshots, screen recording, and Recent Apps task switcher thumbnails are prevented from capturing secrets.
+- Clipboard Exposure Protection:
+  * SafeClipboardHelper attaches ClipDescription.EXTRA_IS_SENSITIVE ("android.content.extra.IS_SENSITIVE") on Android 13+ (API 33).
+  * System clipboard overlay popup suppresses plaintext preview of copied passwords and usernames.
+  * Coroutine background job performs best-effort automatic clipboard clear after 30 seconds.
+- Logcat & Notifications Privacy:
+  * No passwords, decrypted payloads, or database keys are logged.
+  * Vault entries produce no external notifications or background sync leaks.
+=== END EVIDENCE ===

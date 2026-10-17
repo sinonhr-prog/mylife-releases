@@ -1,0 +1,15 @@
+=== EVIDENCE: H09 vault-flow ===
+Date: 2026-10-17T17:00:00+03:00
+Test: local.mylife.app.feature.vault.VaultFlowTest.testVaultEntryCrud_IsolatedStorage, testVaultViewModel_Integration, testPasswordGenerator_LengthAndEntropy
+Result: PASS
+Details:
+- Isolated Storage Session:
+  * Room VaultRepository accessed solely via dedicated VaultStorageSession backed by vault.db with separate vaultDbKey.
+  * Zero-knowledge separation: vault entries are strictly excluded from Main Database (AppDatabase), DashboardSummary, and general queries.
+- Password Generator:
+  * Cryptographically secure CSPRNG (SecureRandom) supporting length 8..64 with uppercase, digits, symbols.
+  * Fisher-Yates uniform shuffle ensuring high entropy and unpredictable outputs.
+- UI & Interaction:
+  * VaultViewModel provides search, show/hide password toggle (default masked with bullet characters), CRUD dialogs.
+  * Locking: AppContainer.closeVaultStorageSession() securely wipes key buffers with Arrays.fill(0).
+=== END EVIDENCE ===

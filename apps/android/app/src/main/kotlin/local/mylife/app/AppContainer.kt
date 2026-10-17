@@ -13,16 +13,22 @@ import java.util.Arrays
 
 interface AppContainer {
     val sessionManager: SessionManager
+    val keyEnvelopeManager: KeyEnvelopeManager
     val updateRepository: UpdateRepository
     fun getStorageSession(mainDbKey: ByteArray): StorageSession
     fun closeStorageSession()
+    fun getVaultStorageSession(vaultDbKey: ByteArray): local.mylife.core.storage.VaultStorageSession
+    fun closeVaultStorageSession()
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
-    override val sessionManager: SessionManager by lazy {
+    override val keyEnvelopeManager: KeyEnvelopeManager by lazy {
         val securityDir = File(context.filesDir, "security")
-        val envelopeManager = KeyEnvelopeManager(securityDir, AndroidDeviceKeyProvider())
-        DefaultSessionManager(envelopeManager)
+        KeyEnvelopeManager(securityDir, AndroidDeviceKeyProvider())
+    }
+
+    override val sessionManager: SessionManager by lazy {
+        DefaultSessionManager(keyEnvelopeManager)
     }
 
     override val updateRepository: UpdateRepository by lazy {
@@ -31,6 +37,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
 
     private var activeSession: StorageSession? = null
     private var activeKey: ByteArray? = null
+
+    private var activeVaultSession: local.mylife.core.storage.VaultStorageSession? = null
+    private var activeVaultKey: ByteArray? = null
 
     @Synchronized
     override fun getStorageSession(mainDbKey: ByteArray): StorageSession {
@@ -52,5 +61,26 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         activeSession = null
         activeKey?.let { Arrays.fill(it, 0.toByte()) }
         activeKey = null
+    }
+
+    @Synchronized
+    override fun getVaultStorageSession(vaultDbKey: ByteArray): local.mylife.core.storage.VaultStorageSession {
+        val current = activeVaultSession
+        if (current != null && activeVaultKey != null && activeVaultKey!!.contentEquals(vaultDbKey)) {
+            return current
+        }
+        closeVaultStorageSession()
+        val session = local.mylife.core.storage.VaultStorageSession(context, vaultDbKey)
+        activeVaultSession = session
+        activeVaultKey = vaultDbKey.clone()
+        return session
+    }
+
+    @Synchronized
+    override fun closeVaultStorageSession() {
+        activeVaultSession?.close()
+        activeVaultSession = null
+        activeVaultKey?.let { Arrays.fill(it, 0.toByte()) }
+        activeVaultKey = null
     }
 }

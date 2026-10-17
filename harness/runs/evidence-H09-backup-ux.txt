@@ -1,0 +1,16 @@
+=== EVIDENCE: H09 backup-ux ===
+Date: 2026-10-17T17:00:00+03:00
+Test: local.mylife.app.feature.settings.backup.BackupRestoreFlowTest.testBackupExport_ValidationAndIntegrity, local.mylife.core.storage.backup.LifeVaultArchiveServiceTest
+Result: PASS
+Details:
+- Local & USB Destination:
+  * Export utilizes SAF (CreateDocument contract) for direct export to user-chosen local or external/USB storage.
+  * No cloud SDKs, background transfers or automated network uploads.
+- Security & KDF:
+  * Dedicated user passphrase required (minimum 8 characters strictly enforced).
+  * Argon2id (64 MiB, 3 iterations, 1 parallelism) deriving encryption key.
+  * Master archive envelope protected with AES-GCM; stream encrypted via Tink Streaming AEAD.
+- Feedback & State:
+  * Displays date and time of successful export in human-readable Russian locale.
+  * Progress states and cancellation handled cleanly without leaving incomplete files in destination.
+=== END EVIDENCE ===

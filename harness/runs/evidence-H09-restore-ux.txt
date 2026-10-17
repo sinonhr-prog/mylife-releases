@@ -1,0 +1,16 @@
+=== EVIDENCE: H09 restore-ux ===
+Date: 2026-10-17T17:00:00+03:00
+Test: local.mylife.app.feature.settings.backup.BackupRestoreFlowTest.testBackupInspect_ManifestPreview, testBackupRestore_SwapDataAndChangePin
+Result: PASS
+Details:
+- Pre-restore Inspection:
+  * inspectArchive verifies magic header (LIFEV1\0), derives key, unpacks staging archive without applying changes.
+  * Manifest details (timestamp, files count, databases, attachments) shown in UI before user confirmation.
+- User Consent & Confirmation:
+  * Restore requires explicit user confirmation in a prominent modal dialog warning that local data will be replaced.
+  * User supplies new 6-digit PIN for target device key envelopes.
+- Atomic Staging Swap & Reconciliation:
+  * Zip Slip protection and decompression limits prevent malicious path traversal and DoS.
+  * KeyStore envelopes re-keyed with new PIN via KeyEnvelopeManager.restoreKeysWithNewPin().
+  * Alarm schedules automatically reconciled and re-registered via BootAndChangeReceiver.rescheduleAll(context).
+=== END EVIDENCE ===

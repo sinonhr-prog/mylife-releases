@@ -174,6 +174,120 @@ class LifeVaultArchiveService(
     }
 
     /**
+     * Inspects archive header, unseals master key and reads manifest.txt without applying changes.
+     */
+    fun inspectArchive(
+        passphrase: String,
+        inputStream: InputStream,
+    ): ArchiveManifest {
+        require(passphrase.isNotBlank()) { "Archive passphrase cannot be empty" }
+
+        val dis = DataInputStream(BufferedInputStream(inputStream))
+
+        // 1. Validate magic header
+        val magic = ByteArray(MAGIC_BYTES.size)
+        dis.readFully(magic)
+        if (!magic.contentEquals(MAGIC_BYTES)) {
+            throw GeneralSecurityException("Invalid archive magic header")
+        }
+
+        // 2. Validate format version
+        val version = dis.readByte()
+        if (version != FORMAT_VERSION) {
+            throw GeneralSecurityException("Unsupported archive version: $version")
+        }
+
+        // 3. Read salt & validate KDF parameters against DoS bounds
+        val salt = ByteArray(16)
+        dis.readFully(salt)
+
+        val memoryKiB = dis.readInt()
+        val iterations = dis.readInt()
+        val parallelism = dis.readShort().toInt()
+
+        if (memoryKiB <= 0 || memoryKiB > MAX_KDF_MEMORY_KIB ||
+            iterations <= 0 || iterations > MAX_KDF_ITERATIONS ||
+            parallelism <= 0 || parallelism > MAX_KDF_PARALLELISM
+        ) {
+            throw GeneralSecurityException("Archive KDF parameters exceed secure bounds")
+        }
+
+        val kdfParams = Argon2Params(memoryKiB, iterations, parallelism, 32)
+
+        // 4. Read sealed master key
+        val sealedKeySize = dis.readShort().toInt()
+        val sealedKey = ByteArray(sealedKeySize)
+        dis.readFully(sealedKey)
+
+        // 5. Derive key and unwrap master key
+        val passBytes = passphrase.toByteArray(Charsets.UTF_8)
+        val kdfKey = try {
+            Argon2idKdf.deriveKey(passBytes, salt, kdfParams)
+        } finally {
+            Arrays.fill(passBytes, 0.toByte())
+        }
+
+        val archiveMasterKey = try {
+            AesGcmEnvelope.open(kdfKey, sealedKey, ARCHIVE_AAD)
+        } finally {
+            Arrays.fill(kdfKey, 0.toByte())
+        }
+
+        val stagingDir = File(cacheDir, "staging_inspect_${UUID.randomUUID()}").apply { mkdirs() }
+        val stagingZipFile = File(stagingDir, "decrypted.zip")
+
+        try {
+            FileOutputStream(stagingZipFile).use { zipOut ->
+                StreamingAeadHelper.decryptStream(
+                    rawKey = archiveMasterKey,
+                    input = dis,
+                    output = zipOut,
+                    associatedData = STREAM_AAD,
+                )
+            }
+
+            val filesMap = mutableMapOf<String, String>()
+            var exportedAt = 0L
+
+            ZipInputStream(BufferedInputStream(FileInputStream(stagingZipFile))).use { zis ->
+                var entry = zis.nextEntry
+                while (entry != null) {
+                    val name = entry.name
+                    if (name.contains("..") || name.startsWith("/") || name.startsWith("\\")) {
+                        throw GeneralSecurityException("Malicious path in archive: $name")
+                    }
+                    if (name == "manifest.txt") {
+                        val manifestBytes = zis.readBytes()
+                        val lines = String(manifestBytes, Charsets.UTF_8).lines()
+                        for (line in lines) {
+                            if (line.startsWith("timestamp:")) {
+                                exportedAt = line.substringAfter("timestamp:").toLongOrNull() ?: 0L
+                            } else {
+                                val parts = line.split("  ", limit = 2)
+                                if (parts.size == 2) {
+                                    filesMap[parts[1]] = parts[0]
+                                }
+                            }
+                        }
+                    }
+                    zis.closeEntry()
+                    entry = zis.nextEntry
+                }
+            }
+
+            return ArchiveManifest(
+                formatVersion = version.toInt(),
+                exportedAtEpochMs = if (exportedAt > 0L) exportedAt else System.currentTimeMillis(),
+                appVersion = "1.0.0",
+                files = filesMap,
+            )
+        } finally {
+            Arrays.fill(archiveMasterKey, 0.toByte())
+            stagingDir.deleteRecursively()
+        }
+    }
+
+    /**
      * Inspects and securely restores an archive into clean staging, then atomically applies it.
      */
     fun restoreArchive(

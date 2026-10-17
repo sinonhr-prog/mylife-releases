@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261017-145000-gemini-h09",
+  "phase": "H09",
+  "model": "gemini-3.8-flash",
+  "identitySource": "runtime-metadata",
+  "identityRef": "USER_SETTINGS_CHANGE: Model Selection -> Gemini 3.8 Flash (Medium) normalized to gemini-3.8-flash per harness/MODEL_ROUTING.md",
+  "authorizationRef": "USER_REQUEST: Владелец поручил продолжать разработку и публиковать изменения на GitHub на согласованный диапазон H01-H10 (harness/decisions.json)",
+  "startedAt": "2026-10-17T13:45:00.000Z",
+  "completedAt": "2026-10-17T14:02:00.000Z",
+  "status": "READY_FOR_GATE",
+  "completedSteps": [
+    "H09.1",
+    "H09.2",
+    "H09.3",
+    "H09.4"
+  ],
+  "changedPaths": [
+    "apps/android/app/src/main/kotlin/local/mylife/MainActivity.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/AppContainer.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/settings/backup/BackupScreen.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/settings/backup/BackupViewModel.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/vault/PasswordGenerator.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/vault/SafeClipboardHelper.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/vault/VaultScreen.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/vault/VaultViewModel.kt",
+    "apps/android/app/src/test/kotlin/local/mylife/app/feature/settings/backup/BackupRestoreFlowTest.kt",
+    "apps/android/app/src/test/kotlin/local/mylife/app/feature/vault/VaultFlowTest.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/VaultStorageSession.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/backup/LifeVaultArchiveService.kt",
+    "harness/runs/20261017-145000-gemini-h09-handoff.md",
+    "harness/runs/evidence-H09-backup-ux.txt",
+    "harness/runs/evidence-H09-restore-ux.txt",
+    "harness/runs/evidence-H09-vault-exposure.txt",
+    "harness/runs/evidence-H09-vault-flow.txt"
+  ],
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "341c48ac098c99a06924fb30c0c322fd54ad97da618f94952435662f9c9736eb",
+  "handoffPath": "harness/runs/20261017-145000-gemini-h09-handoff.md",
+  "checks": [
+    {
+      "id": "vault-flow",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.vault.VaultFlowTest.*",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T14:00:00.000Z",
+      "summary": "Vault isolation session, CSPRNG password generator, show/hide password, and CRUD pass successfully",
+      "evidencePath": "harness/runs/evidence-H09-vault-flow.txt",
+      "sha256": "30885eee193c59baa322c86aaa93afc9b889263757f18579cc6d10cda0102d63"
+    },
+    {
+      "id": "backup-ux",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.settings.backup.BackupRestoreFlowTest.testBackupExport_*",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T14:00:00.000Z",
+      "summary": "Local and USB backup creation with passphrase validation, Argon2id KDF and Streaming AEAD verified",
+      "evidencePath": "harness/runs/evidence-H09-backup-ux.txt",
+      "sha256": "13128d9282cb6ef33aba5dacd9cd887f900339d6c9ebf9331923dfef95634f6c"
+    },
+    {
+      "id": "restore-ux",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.settings.backup.BackupRestoreFlowTest.testBackupRestore_*",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T14:00:00.000Z",
+      "summary": "Manifest inspection preview, confirmation dialog, atomic staging swap, PIN re-key and reminder reschedule pass",
+      "evidencePath": "harness/runs/evidence-H09-restore-ux.txt",
+      "sha256": "cb043c276f6456eba5e73c406e7c858e80659192eff4a6f4bf270c92d6f90168"
+    },
+    {
+      "id": "vault-exposure",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :app:testDebugUnitTest --tests local.mylife.app.feature.vault.VaultFlowTest.testVaultExposure_*",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T14:00:00.000Z",
+      "summary": "FLAG_SECURE window protection, clipboard IS_SENSITIVE flag and 30s auto-clear verified without leaks",
+      "evidencePath": "harness/runs/evidence-H09-vault-exposure.txt",
+      "sha256": "6a0d44cabbc8a86ae14eda7ff9e8b180f9def87a7b792b9ac7e423b44464a968"
+    }
+  ],
+  "requiredChecks": [
+    "vault-flow",
+    "backup-ux",
+    "restore-ux",
+    "vault-exposure"
+  ],
+  "exitDecisions": [],
+  "notes": "Этап H09 полностью реализован: изолированный Сейф, генератор паролей, безопасный буфер обмена с флагом IS_SENSITIVE, экспорт и импорт .lifevault архивов со staging и подтверждением смены PIN."
+}
