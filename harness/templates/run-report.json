@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "runId": null,
+  "phase": null,
+  "model": null,
+  "identitySource": null,
+  "identityRef": null,
+  "authorizationRef": null,
+  "startedAt": null,
+  "completedAt": null,
+  "status": "NOT_STARTED",
+  "completedSteps": [],
+  "changedPaths": [],
+  "planDigest": null,
+  "sourceDigest": null,
+  "handoffPath": null,
+  "checks": []
+}

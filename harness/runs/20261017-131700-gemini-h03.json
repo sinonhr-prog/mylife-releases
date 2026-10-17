@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261017-131700-gemini-h03",
+  "phase": "H03",
+  "model": "gemini-3.8-flash",
+  "identitySource": "runtime-metadata",
+  "identityRef": "USER_SETTINGS_CHANGE: Model Selection -> Gemini 3.8 Flash (Medium) normalized to gemini-3.8-flash per harness/MODEL_ROUTING.md",
+  "authorizationRef": "USER_REQUEST: Владелец утвердил политику 6-значного PIN и предоставил полное согласование 'Все разрешаю' на диапазон H01-H10 (harness/decisions.json)",
+  "startedAt": "2026-10-17T10:16:21.000Z",
+  "completedAt": "2026-10-17T10:49:00.000Z",
+  "status": "READY_FOR_GATE",
+  "completedSteps": [
+    "H03.1",
+    "H03.2",
+    "H03.3",
+    "H03.4"
+  ],
+  "changedPaths": [
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/crypto/PinPolicy.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/crypto/KeyScope.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/crypto/DeviceKeyProvider.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/crypto/KeyEnvelopeManager.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/SessionState.kt",
+    "apps/android/core/security/src/main/kotlin/local/mylife/core/security/SessionManager.kt",
+    "apps/android/core/security/src/test/kotlin/local/mylife/core/security/H03SecuritySessionTest.kt",
+    "apps/android/core/security/src/test/kotlin/local/mylife/core/security/SessionManagerTest.kt",
+    "apps/android/core/security/src/androidTest/kotlin/local/mylife/core/security/CryptoBenchmarkAndDeviceTest.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/auth/PinViewModel.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/auth/PinScreen.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/feature/auth/SessionLifecycleManager.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/MyLifeApp.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/app/AppContainer.kt",
+    "apps/android/app/src/main/kotlin/local/mylife/MainActivity.kt",
+    "docs/STATUS.md",
+    "harness/CURRENT.md",
+    "harness/runs/20261017-131700-gemini-h03-handoff.md",
+    "harness/runs/evidence-H03-auth-negative.txt",
+    "harness/runs/evidence-H03-session-isolation.txt",
+    "harness/runs/evidence-H03-pin-change-crash.txt",
+    "harness/runs/evidence-H03-auth-device.txt"
+  ],
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "c4e45394df11d03c4dd4e3950c56a2531cfc38918e1eb4183daf47eb67fe366e",
+  "handoffPath": "harness/runs/20261017-131700-gemini-h03-handoff.md",
+  "checks": [
+    {
+      "id": "auth-negative",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:security:testDebugUnitTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T10:19:52.000Z",
+      "evidencePath": "harness/runs/evidence-H03-auth-negative.txt",
+      "sha256": "f9572ac8a3dd0d39c2a77bb4306315e0e876692129f2b75d1251bd1ee3a2fc01"
+    },
+    {
+      "id": "session-isolation",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:security:testDebugUnitTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T10:19:52.000Z",
+      "evidencePath": "harness/runs/evidence-H03-session-isolation.txt",
+      "sha256": "06f7587b7c679e0d69fb5713bf426b456a8ad0f8a5c33827af09311892c6aeaf"
+    },
+    {
+      "id": "pin-change-crash",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:security:testDebugUnitTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T10:19:52.000Z",
+      "evidencePath": "harness/runs/evidence-H03-pin-change-crash.txt",
+      "sha256": "16ee283d3f457833639a7746b506d920432f65fab6cb6dc81f6838754ababc6a"
+    },
+    {
+      "id": "auth-device",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:security:connectedDebugAndroidTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T10:47:14.000Z",
+      "evidencePath": "harness/runs/evidence-H03-auth-device.txt",
+      "sha256": "2211ff81a6f3a2c06b6062fc2375de76eca84a080ca4b2e571bad6e08d07a732"
+    }
+  ]
+}

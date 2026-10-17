@@ -1,0 +1,500 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "models": {
+    "gemini-3.8-flash": "harness/profiles/GEMINI.md",
+    "gpt-6.1-sol": "harness/profiles/GPT.md"
+  },
+  "phases": [
+    {
+      "id": "H00",
+      "title": "Preflight и подтверждение старта",
+      "card": "harness/phases/H00.md",
+      "dependsOn": [],
+      "entryDecisions": [],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff"
+      ],
+      "steps": [
+        "H00.1",
+        "H00.2",
+        "H00.3",
+        "H00.4"
+      ],
+      "requiredChecks": [
+        "identity-context",
+        "toolchain-inventory",
+        "planning-checks",
+        "handoff-ready"
+      ],
+      "scopePrefixes": [
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H01",
+      "title": "Воспроизводимый Android bootstrap",
+      "card": "harness/phases/H01.md",
+      "dependsOn": [
+        "H00"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-compose-focus"
+      ],
+      "steps": [
+        "H01.1",
+        "H01.2",
+        "H01.3",
+        "H01.4"
+      ],
+      "requiredChecks": [
+        "bootstrap-build",
+        "bootstrap-quality",
+        "bootstrap-device",
+        "bootstrap-manifest"
+      ],
+      "scopePrefixes": [
+        "apps/android/",
+        "docs/",
+        "scripts/",
+        ".gitignore",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H02",
+      "title": "Криптографический прототип и точная спецификация",
+      "card": "harness/phases/H02.md",
+      "dependsOn": [
+        "H01"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [
+        "crypto-design-review"
+      ],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H02.1",
+        "H02.2",
+        "H02.3",
+        "H02.4"
+      ],
+      "requiredChecks": [
+        "sqlcipher-spike",
+        "crypto-vectors",
+        "keystore-spike",
+        "crypto-spec"
+      ],
+      "scopePrefixes": [
+        "apps/android/core/security/",
+        "apps/android/core/storage/",
+        "apps/android/app/src/androidTest/",
+        "apps/android/gradle/",
+        "docs/",
+        "scripts/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H03",
+      "title": "PIN, биометрия и изоляция сессий",
+      "card": "harness/phases/H03.md",
+      "dependsOn": [
+        "H02"
+      ],
+      "entryDecisions": [
+        "implementation-start",
+        "pin-policy",
+        "crypto-design-review"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H03.1",
+        "H03.2",
+        "H03.3",
+        "H03.4"
+      ],
+      "requiredChecks": [
+        "auth-negative",
+        "session-isolation",
+        "pin-change-crash",
+        "auth-device"
+      ],
+      "scopePrefixes": [
+        "apps/android/core/security/",
+        "apps/android/core/model/",
+        "apps/android/app/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H04",
+      "title": "Схемы, репозитории и зашифрованные файлы",
+      "card": "harness/phases/H04.md",
+      "dependsOn": [
+        "H03"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H04.1",
+        "H04.2",
+        "H04.3",
+        "H04.4"
+      ],
+      "requiredChecks": [
+        "storage-real",
+        "migrations",
+        "attachment-failure",
+        "domain-contracts"
+      ],
+      "scopePrefixes": [
+        "apps/android/core/model/",
+        "apps/android/core/storage/",
+        "apps/android/core/security/",
+        "apps/android/app/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H05",
+      "title": "Ранний переносимый архив и восстановление",
+      "card": "harness/phases/H05.md",
+      "dependsOn": [
+        "H04"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H05.1",
+        "H05.2",
+        "H05.3",
+        "H05.4"
+      ],
+      "requiredChecks": [
+        "archive-roundtrip",
+        "archive-negative",
+        "restore-atomic",
+        "archive-private"
+      ],
+      "scopePrefixes": [
+        "apps/android/core/storage/",
+        "apps/android/core/security/",
+        "apps/android/core/model/",
+        "apps/android/app/src/androidTest/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H06",
+      "title": "Утверждённый Фокус и покупки",
+      "card": "harness/phases/H06.md",
+      "dependsOn": [
+        "H05"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-compose-focus",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H06.1",
+        "H06.2",
+        "H06.3",
+        "H06.4"
+      ],
+      "requiredChecks": [
+        "focus-ui",
+        "product-flow",
+        "ui-accessibility",
+        "ui-private"
+      ],
+      "scopePrefixes": [
+        "apps/android/app/",
+        "apps/android/core/designsystem/",
+        "apps/android/core/model/",
+        "apps/android/core/storage/",
+        "docs/",
+        "design/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H07",
+      "title": "Места, заметки, задачи и живой дашборд",
+      "card": "harness/phases/H07.md",
+      "dependsOn": [
+        "H06"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-compose-focus"
+      ],
+      "steps": [
+        "H07.1",
+        "H07.2",
+        "H07.3",
+        "H07.4"
+      ],
+      "requiredChecks": [
+        "personal-crud",
+        "dashboard-order",
+        "dashboard-isolation",
+        "category-integrity"
+      ],
+      "scopePrefixes": [
+        "apps/android/app/",
+        "apps/android/core/model/",
+        "apps/android/core/storage/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H08",
+      "title": "Напоминания и ограничения Android/Vivo",
+      "card": "harness/phases/H08.md",
+      "dependsOn": [
+        "H07"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security",
+        "mylife-compose-focus"
+      ],
+      "steps": [
+        "H08.1",
+        "H08.2",
+        "H08.3",
+        "H08.4"
+      ],
+      "requiredChecks": [
+        "reminder-rules",
+        "reminder-device",
+        "reminder-privacy",
+        "reminder-ux"
+      ],
+      "scopePrefixes": [
+        "apps/android/app/",
+        "apps/android/core/model/",
+        "apps/android/core/storage/",
+        "apps/android/core/security/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H09",
+      "title": "Сейф, настройки и пользовательский backup UX",
+      "card": "harness/phases/H09.md",
+      "dependsOn": [
+        "H08"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security",
+        "mylife-compose-focus"
+      ],
+      "steps": [
+        "H09.1",
+        "H09.2",
+        "H09.3",
+        "H09.4"
+      ],
+      "requiredChecks": [
+        "vault-flow",
+        "backup-ux",
+        "restore-ux",
+        "vault-exposure"
+      ],
+      "scopePrefixes": [
+        "apps/android/app/",
+        "apps/android/core/security/",
+        "apps/android/core/storage/",
+        "apps/android/core/model/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H10",
+      "title": "Полная приёмка и независимое ревью",
+      "card": "harness/phases/H10.md",
+      "dependsOn": [
+        "H09"
+      ],
+      "entryDecisions": [
+        "implementation-start"
+      ],
+      "exitDecisions": [
+        "real-secrets-review"
+      ],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security",
+        "mylife-compose-focus"
+      ],
+      "steps": [
+        "H10.1",
+        "H10.2",
+        "H10.3",
+        "H10.4"
+      ],
+      "requiredChecks": [
+        "full-regression",
+        "performance",
+        "privacy-release",
+        "review-findings"
+      ],
+      "scopePrefixes": [
+        "apps/android/",
+        "scripts/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    },
+    {
+      "id": "H11",
+      "title": "Личный подписанный выпуск",
+      "card": "harness/phases/H11.md",
+      "dependsOn": [
+        "H10"
+      ],
+      "entryDecisions": [
+        "implementation-start",
+        "personal-release",
+        "real-secrets-review"
+      ],
+      "exitDecisions": [],
+      "skills": [
+        "mylife-execute-slice",
+        "mylife-verify-evidence",
+        "mylife-context-handoff",
+        "mylife-android-security"
+      ],
+      "steps": [
+        "H11.1",
+        "H11.2",
+        "H11.3",
+        "H11.4"
+      ],
+      "requiredChecks": [
+        "signed-artifact",
+        "upgrade-recovery",
+        "beta-evidence",
+        "release-documentation"
+      ],
+      "scopePrefixes": [
+        "apps/android/",
+        "scripts/",
+        "docs/",
+        "harness/runs/",
+        "harness/CURRENT.md",
+        "docs/STATUS.md",
+        "docs/knowledge/ERRORS.md"
+      ]
+    }
+  ]
+}

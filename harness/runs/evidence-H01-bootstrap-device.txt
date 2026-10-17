@@ -1,0 +1,34 @@
+# EVIDENCE: bootstrap-device
+# Phase: H01 (Воспроизводимый Android bootstrap)
+# RunId: 20261017-085018-gemini-h01
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:14:39Z
+# Status: PASS
+
+## 1. Test Device Identification
+- Platform: Android Emulator (AVD: `test_api29`)
+- Android Version: 10.0 (API Level 29)
+- ABI: x86_64
+- Device Identifier: `emulator-5554`
+- Hardware Acceleration: Windows Hypervisor Platform (WHPX), swiftshader_indirect GPU
+- Physical Vivo Status: Physical Vivo handset was not attached via USB/Wi-Fi to host machine in this environment; API 29 (minSdk target) was executed and validated via local AVD emulator.
+
+## 2. Installation & Activity Launch
+- Install Command: `adb install -r apps/android/app/build/outputs/apk/debug/app-debug.apk`
+  - Output: `Performing Streamed Install`, `Success`
+- Launch Command: `adb shell am start -n local.mylife.debug/local.mylife.MainActivity`
+  - Output: `Starting: Intent { cmp=local.mylife.debug/local.mylife.MainActivity }`
+- Process & Activity Verification:
+  - Command: `adb shell dumpsys activity activities | Select-String "mResumedActivity"`
+  - Result: `mResumedActivity: ActivityRecord{1bc7d42 u0 local.mylife.debug/local.mylife.MainActivity t8}`
+
+## 3. UI Hierarchy Dump Verification
+- Command: `adb shell uiautomator dump /data/local/tmp/window_dump.xml`
+- Verified Components:
+  - Header title: "Главная"
+  - Drawer menu toggle: "☰" (navigation drawer button)
+  - Primary Highlight Card: "БЛИЖАЙШЕЕ ДЕЛО"
+  - Empty state text: "Все дела завершены", "Новых запланированных дел нет"
+  - Overview section: "ОБЗОР", "Задачи: 0 активных", "Напоминания: нет сигналов"
+  - Bottom navigation bar: Absent (preserves approved design "Бумага / Фокус")
+- Screenshot Artifact: `harness/runs/evidence-H01-screen-api29.png` (34,094 bytes)

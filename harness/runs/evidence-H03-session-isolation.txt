@@ -1,0 +1,23 @@
+# EVIDENCE: session-isolation
+# Phase: H03 (PIN, биометрия и изоляция сессий)
+# Step: H03.3 (Обработать lifecycle)
+# RunId: 20261017-131700-gemini-h03
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T10:19:52Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.security.H03SecuritySessionTest`
+- Tests Executed:
+  - `testSessionIsolation_MainUnlockedDoesNotUnlockVault`: Entering main PIN unlocks ONLY `SessionState.MainUnlocked`. `vaultDbKey` is never exposed or derived, `SessionState.VaultUnlocked` is false.
+  - `testSessionIsolation_UnlockVaultAndLockVaultOnly`: Unlocking vault transitions to `SessionState.VaultUnlocked`. Calling `lockVault()` reverts to `SessionState.MainUnlocked` and immediately zeroizes `vaultDbKey` array in memory.
+  - `testSessionIsolation_LockAllWipesAllKeys`: Calling `lockAll()` immediately sets state to `SessionState.Locked` and wipes all memory byte arrays (`Arrays.fill(bytes, 0)`).
+- Command: `.\gradlew.bat :core:security:testDebugUnitTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All tests passed)
+
+## 2. Lifecycle Integration Verification
+- `SessionLifecycleManager` registered via `Application.ActivityLifecycleCallbacks`:
+  - Automatically invokes `sessionManager.lockAll()` when `startedActivityCount == 0` (app moves to background / screen off).
+  - Enforces `WindowManager.LayoutParams.FLAG_SECURE` for PIN screen and Vault screen to prevent screen capture and Android Recents snapshot leaks.
+  - Navigation drawer open action (☰) or leaving Vault screen immediately calls `sessionManager.lockVault()`.

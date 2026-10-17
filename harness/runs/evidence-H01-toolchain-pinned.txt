@@ -1,0 +1,24 @@
+EVIDENCE: toolchain-pinned
+Phase: H01
+Step: H01.1
+Timestamp: 2026-10-16T20:16:00.000Z
+RunId: 20261016-200730-gemini-h01
+
+Toolchain Specifications Pinned:
+- Document: docs/toolchain.md
+- Platform: Android 10+ (minSdk 29, compileSdk 35, targetSdk 35)
+- JDK / Java: OpenJDK 17 LTS / 21 LTS (Java 17 baseline target)
+- Gradle: 8.9 (distribution SHA-256: d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab)
+- AGP: 8.7.0
+- Kotlin: 2.0.21 (Compose Compiler 2.0.21 built-in)
+- KSP: 2.0.21-1.0.28
+- Room: 2.6.1
+- SQLCipher for Android: 4.6.1 (16 KB page size support)
+- Compose BOM: 2024.10.00 (Material 3 1.3.0)
+- ktlint: 12.1.1 (ktlint 1.3.1)
+- Restrictions: ZERO network permissions (no INTERNET), no telemetry SDKs, full backup exclusions.
+
+Verification:
+- Command: node scripts/verify-project.mjs
+- Output: 77 Markdown files checked, 244 local links valid, five themes valid, five project skills valid.
+- Status: PASS

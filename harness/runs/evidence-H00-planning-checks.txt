@@ -1,0 +1,37 @@
+EVIDENCE: planning-checks
+Phase: H00
+Step: H00.3
+Timestamp: 2026-10-16T20:03:00.000Z
+RunId: 20261016-200000-gemini-h00
+
+Executed command:
+node scripts/verify-project.mjs
+Exit code: 0
+Output:
+Checked 75 Markdown files; 241 local links; five themes; five project skills; gallery script syntax.
+PASS: project package static checks. Android runtime not tested.
+
+Executed command:
+node scripts/harness.mjs validate
+Exit code: 0
+Output:
+{"status":"PASS","phases":12,"completed":0}
+
+Executed command:
+node --test scripts/harness.test.mjs
+Exit code: 0
+Output:
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+
+Approved UI Mockup Inspection:
+- Visual inspection of design/previews/paper-focus.png and design/previews/paper-menu.png: confirmed "Paper / Focus" design. Focus card "ближайшее дело" at the top, left drawer menu with all categories, no bottom navigation tabs.
+- Dynamic browser re-run via verify-dashboard.cjs: skipped/optional because Playwright dependency is not packaged locally (ENV-002 constraint).
+
+Status: PASS

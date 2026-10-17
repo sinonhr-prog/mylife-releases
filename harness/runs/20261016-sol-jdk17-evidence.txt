@@ -1,0 +1,27 @@
+EVIDENCE: JDK installation and verification
+RunId: 20261016-sol-jdk17
+Date: 2026-10-16
+Model: gpt-6.1-sol
+IdentitySource: operator-confirmed
+Authorization: current owner request to install JDK 17 and run build/instrumentation.
+Command: winget install --id EclipseAdoptium.Temurin.17.JDK --exact --source winget --accept-package-agreements --accept-source-agreements --silent --disable-interactivity
+Exit: 0
+Result: installer hash verified by winget; installation successful.
+Package version: 17.0.20.101
+Java: OpenJDK Temurin 17.0.20.1+1, 64-bit; java -version successful.
+Machine JAVA_HOME: configured by installer, points to installed JDK.
+Current build process explicitly refreshes JAVA_HOME and PATH; previously open terminals may require restart.
+Gradle Wrapper: 8.9 downloaded and launched. Build outcome pending.
+Instrumentation inventory: zero Kotlin test files in androidTest directories.
+Independent checks: verify-project PASS; harness validate PASS; harness tests PASS 15/15.
+
+Build attempts (cwd apps/android):
+1. ./gradlew.bat :app:assembleDebug — FAIL exit 1, AGP non-ASCII project path check.
+2. -Pandroid.overridePathCheck=true — FAIL exit 1, same check.
+3. -Dandroid.overridePathCheck=true — FAIL exit 1, same check.
+Targeted diagnosis: javap of installed AGP 8.7.0 BooleanOption confirmed Gradle option android.overridePathCheck.
+4. Property in project gradle.properties, then ./gradlew.bat :app:assembleDebug connectedDebugAndroidTest — FAIL exit 1, SDK location not found.
+Path guard resolved; full Unicode toolchain compatibility unverified.
+Compilation: NOT_RUN. Instrumentation execution: NOT_RUN. APK: not created.
+Android SDK installation/device setup: NOT_RUN. No personal device modified.
+H01 closure: NOT_RUN, required gates unsatisfied.

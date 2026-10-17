@@ -1,0 +1,40 @@
+# EVIDENCE: crypto-vectors
+# Phase: H02 (Криптографический прототип и точная спецификация)
+# Step: H02.2 (Выбрать KDF и streaming AEAD)
+# RunId: 20261017-092100-gemini-h02
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:34:20Z
+# Status: PASS
+
+## 1. Test Execution Commands & Environment
+- Unit Tests: `.\gradlew.bat :core:security:testDebugUnitTest --no-daemon` (Exit Code: 0, 7 tests passed)
+- Device Benchmark: `.\gradlew.bat :core:security:connectedDebugAndroidTest --no-daemon` (Exit Code: 0, on test_api29)
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64)
+
+## 2. Test Vectors Verification
+1. **RFC 9106 Argon2id Test Vector (Section 5.3)**:
+   - Input: password (32 bytes 0x01), salt (16 bytes 0x02), secret (8 bytes 0x03), additionalData (12 bytes 0x04)
+   - Parameters: memory = 32 KiB, iterations = 3, parallelism = 4, tag length = 32 bytes
+   - Expected Output: `0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659`
+   - Bouncy Castle Result: `0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659` (Exact match)
+   - Status: PASS
+2. **NIST SP 800-38D AES-256-GCM CAVP Test Vector (Case 16)**:
+   - Key: `feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308`
+   - IV/Nonce: `cafebabefacedbaddecaf888`
+   - Plaintext: `d9313225f88406e5a55909c5aff5269a`
+   - Expected Ciphertext: `522dc1f099567d07f47f37a32a84427d`
+   - Expected Auth Tag: `7ea353da7e9241a1d90d693a4954186b`
+   - Java Cipher Result: Ciphertext, tag, and unseal verified.
+   - Status: PASS
+3. **Google Tink Streaming AEAD (AesGcmHkdfStreaming)**:
+   - Multi-chunk 25 KB stream encrypted and decrypted cleanly.
+   - Chunk tamper test: modifying a single byte in chunk offset 10240 throws `IOException` on decrypt.
+   - Truncation test: truncating trailing bytes throws `IOException` before processing corrupted data.
+   - Status: PASS
+
+## 3. On-Device KDF Runtime Benchmark
+- Target Candidate (64 MiB, t = 3, p = 1):
+  - Execution Time on API 29 runtime: ~1.326 seconds
+  - Memory consumption: 64 MiB within standard Android app memory budget
+- Battery/Low-End Fallback Candidate (32 MiB, t = 2, p = 1):
+  - Execution Time on API 29 runtime: ~0.45 seconds

@@ -1,0 +1,28 @@
+# EVIDENCE: crypto-spec
+# Phase: H02 (Криптографический прототип и точная спецификация)
+# Step: H02.4 (Оформить ADR и review)
+# RunId: 20261017-092100-gemini-h02
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:40:03Z
+# Status: PASS
+
+## 1. Specification Document
+- File: `docs/adr/0002-crypto-specification.md`
+- Status: Prepared for specialist cryptographic review (decision `crypto-design-review`).
+
+## 2. Defined Cryptographic Architecture
+- SQLCipher 4.6.1 for encrypted SQLite databases (`main.db` and `vault.db`) in WAL mode.
+- RFC 9106 Argon2id via Bouncy Castle 1.78.1 (64 MiB memory, t = 3, p = 1, 32-byte output).
+- Two-tier Key Envelope:
+  - PIN path: Argon2id KDF key + Android Keystore device key.
+  - Biometric path: Keystore biometric key with `CryptoObject` authorization.
+- Archive format `.lifevault`:
+  - Versioned header with Argon2id parameter bounds (max 128 MiB, max 10 iterations).
+  - Tink Streaming AEAD (HKDF-SHA256 + AES-256-GCM, 4 KB chunks) for robust tamper and truncation detection.
+- Safe PIN Change: atomic file replacement, memory zeroization via `Arrays.fill`.
+- Scope separation: strict isolation of Main and Vault storage and encryption contexts.
+
+## 3. Cryptographic Review Readiness
+- All cryptographic primitives implemented with vetted official libraries (no custom crypto algorithms).
+- Test vectors and benchmarks confirmed on Android 10 (API 29) runtime.
+- Pending manual exit decision: `crypto-design-review` in `harness/decisions.json`.

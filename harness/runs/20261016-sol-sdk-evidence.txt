@@ -1,0 +1,30 @@
+EVIDENCE: Android SDK, compilation and tests
+Date: 2026-10-16
+RunId: 20261016-sol-sdk
+Model: gpt-6.1-sol, operator-confirmed in current chat; authorization: owner request to install SDK, set ANDROID_HOME, compile and run tests.
+SDK source: https://developer.android.com/studio
+Archive: commandlinetools-win-15859902_latest.zip
+SHA256 checked before extraction: 90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a
+CLI 22.0, Platform Tools 37.0.1, API29 rev5, API35 rev2, Build Tools 34.0.0 and 35.0.0. SDK install exit 0. User ANDROID_HOME configured.
+JDK: installed Temurin 17.0.20.1+1; Gradle Wrapper 8.9; AGP 8.7.0.
+Working directory: apps/android through temporary ASCII alias P: pointing at workspace root, no source copy/move.
+Build/unit command: ./gradlew.bat :app:assembleDebug :core:model:test :app:testDebugUnitTest :core:security:testDebugUnitTest :core:storage:testDebugUnitTest :core:designsystem:testDebugUnitTest --console=plain --continue
+Outcome: :app:assembleDebug PASS, six unit methods PASS; command exit 1 due incorrect Color conversion in ThemeTest.
+Minimal test fix: use Color.toArgb(), preserve both expected ARGB colors from design/tokens.json.
+Follow-up command: ./gradlew.bat :core:designsystem:testDebugUnitTest connectedDebugAndroidTest --console=plain --continue
+Outcome: exit 0, ThemeTest PASS. All seven existing unit methods PASS, zero failures/skips in current XML.
+Instrumentation: tasks exit 0, Kotlin/Java sources NO-SOURCE, ready adb devices 0, actual instrumentation test count 0. Coverage NOT_RUN.
+APK: apps/android/app/build/outputs/apk/debug/app-debug.apk
+SHA256: 021b5563ed5709f16b22395bca3d05f6a3bf2649f26e858811dd03fb4f391fd0
+Not a release/security acceptance. No personal device or real user data used.
+Not run: clean build, lint, format, API29/Vivo runtime, security/backup/ABI/16KB gates. H01 not closed.
+Known warnings: SDK XML v4 vs AGP support v3, experimental path override, native libraries packaged unstripped.
+Previous failures preserved in ERRORS: CLI argument syntax, missing AndroidX, D8 heap, Unicode JUnit classpath, ThemeTest packed Color conversion.
+Unit XML summary:
+local.mylife.app.AppContainerTest: tests=1, failures=0, errors=0, skipped=0
+local.mylife.core.designsystem.ThemeTest: tests=1, failures=0, errors=0, skipped=0
+local.mylife.core.model.ModelsTest: tests=2, failures=0, errors=0, skipped=0
+local.mylife.core.security.SessionManagerTest: tests=2, failures=0, errors=0, skipped=0
+local.mylife.core.storage.TaskRepositoryTest: tests=1, failures=0, errors=0, skipped=0
+Independent package checks after documentation updates: verify-project PASS (80 Markdown files, 246 links); harness validate PASS; harness tests PASS 15/15.
+Temporary P: alias removed after final test process completion; source files preserved.

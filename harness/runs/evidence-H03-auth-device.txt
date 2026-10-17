@@ -1,0 +1,32 @@
+# EVIDENCE: auth-device
+# Phase: H03 (PIN, биометрия и изоляция сессий)
+# Step: H03.1 (Реализовать ключи по принятому ADR)
+# RunId: 20261017-131700-gemini-h03
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T10:47:14Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.security.CryptoBenchmarkAndDeviceTest`
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64 emulator on Windows Hypervisor Platform)
+- Command: `.\gradlew.bat :core:security:connectedDebugAndroidTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All 6 device tests passed: 6/6 completed, 0 failed, 0 skipped)
+
+## 2. Verified Device Security Features
+1. `testDeviceKeyStoreKeyEnvelopeManagerEndToEnd`:
+   - Real `AndroidDeviceKeyProvider` interacting with platform `AndroidKeyStore`.
+   - Setup 6-digit PIN envelope, outer wrap encryption with non-exportable Keystore key.
+   - Successful unwrapping and recovery of 32-byte database keys on Android runtime.
+   - Live PIN change with Keystore re-wrapping verified on Android filesystem.
+2. `testKeystoreHardwareKeyGenerationAndSeparation`:
+   - Generation of AES-256-GCM keys in `AndroidKeyStore` with `PURPOSE_ENCRYPT | PURPOSE_DECRYPT`.
+   - Complete cryptographic isolation between `mylife_test_main_scope_key` and `mylife_test_vault_scope_key`.
+3. `testCryptoObjectInitializationForBiometric`:
+   - Proper initialization of `Cipher.getInstance("AES/GCM/NoPadding")` wrapped in `androidx.biometric.BiometricPrompt.CryptoObject`.
+4. `testStreamingAeadWithDeviceFileSystem`:
+   - Google Tink streaming AEAD read/write to Android `context.cacheDir`.
+5. `testArgon2idBenchmarkOnDeviceRuntime`:
+   - RFC 9106 Argon2id runtime benchmark on Android 10 runtime.
+6. `testKeyEnvelopeCompositionAndZeroization`:
+   - Zeroization hygiene confirmed on Android Dalvik/ART JVM.

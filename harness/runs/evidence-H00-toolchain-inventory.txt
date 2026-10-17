@@ -1,0 +1,20 @@
+EVIDENCE: toolchain-inventory
+Phase: H00
+Step: H00.2
+Timestamp: 2026-10-16T20:02:00.000Z
+RunId: 20261016-200000-gemini-h00
+
+Toolchain Inventory:
+- Node.js: v22.23.2.0 (C:\Users\ldleness\AppData\Local\hermes\node\node.exe) - PRESENT
+- Git: 2.55.0.5 (C:\Program Files\Git\cmd\git.exe) - PRESENT
+- Java / JDK (java, javac): NOT FOUND in PATH. JAVA_HOME is not set. C:\Program Files\Java not found.
+- Gradle: NOT FOUND in PATH. No project Gradle wrapper yet.
+- Android SDK (adb, sdkmanager): NOT FOUND in PATH. ANDROID_HOME / ANDROID_SDK_ROOT not set.
+- Physical / Virtual Android Device: NO adb connection; Vivo X200 Pro mini runtime not connected.
+- Web Browsers: Google Chrome and Microsoft Edge PRESENT.
+- External dependencies / tools: None installed during H00 (as required by preflight boundaries).
+
+Inventory Conclusion:
+Missing tools identified: JDK 17/21, Android SDK (API 29-35 platform-tools, build-tools), Gradle distribution wrapper (to be configured in H01).
+Absence of Android SDK / adb / Vivo runtime is documented as environment constraints (ENV-001) and does not fail toolchain-inventory criteria.
+Status: PASS

@@ -1,0 +1,22 @@
+# EVIDENCE: pin-change-crash
+# Phase: H03 (PIN, биометрия и изоляция сессий)
+# Step: H03.4 (Проверить смену PIN и потерю доступа)
+# RunId: 20261017-131700-gemini-h03
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T10:19:52Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.security.H03SecuritySessionTest`
+- Tests Executed:
+  - `testPinChange_SuccessPreservesDatabaseKeys`: Verifies full end-to-end PIN change flow from `123456` to `987654`. The underlying 256-bit database keys (`DK_main`, `DK_vault`) are re-wrapped with fresh salt and Argon2id parameters. After re-wrap, the old PIN strictly fails, the new PIN succeeds, and the exact original database keys are recovered byte-for-byte.
+  - `testPinChangeCrash_InterruptionBeforeAtomicRenameLeavesOldPinIntact`: Simulates sudden crash / power loss during envelope write. Temporary `.tmp` file presence without atomic rename completion leaves the pre-existing envelope 100% intact and functional. Upon app restart, the old PIN remains valid and prevents catastrophic loss of access.
+- Command: `.\gradlew.bat :core:security:testDebugUnitTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All tests passed)
+
+## 2. Crash Resistance Architecture
+- Atomic staging via `File.renameTo`:
+  - `envelope_<scope>.bin.tmp` written and flushed with `FileOutputStream.fd.sync()`.
+  - Atomic rename replaces production envelope only when bytes are fully written and validated.
+  - Intermediate secret arrays wiped via `Arrays.fill(bytes, 0)`.

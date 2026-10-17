@@ -1,0 +1,23 @@
+# EVIDENCE: auth-negative
+# Phase: H03 (PIN, биометрия и изоляция сессий)
+# Step: H03.2 (Сделать вход и сессии)
+# RunId: 20261017-131700-gemini-h03
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T10:19:52Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.security.H03SecuritySessionTest`
+- Tests Executed:
+  - `testAuthNegative_InvalidPinPolicy`: Strict 6-digit enforcement via `PinPolicy.isValidPin(pin)` rejecting <6 digits, >6 digits, non-digits, empty strings.
+  - `testAuthNegative_WrongPinFailsUnlockAndKeepsLocked`: Incorrect PIN strictly fails unlock, keeps session in `SessionState.Locked`, increments failed attempts counter.
+  - `testAuthNegative_TamperedEnvelopeFailsIntegrityCheck`: Tampered envelope bytes trigger authentication tag failure, preventing any key recovery.
+  - `testAuthNegative_ScopeMismatchRejectedByAad`: Envelope sealed with `KeyScope.MAIN` AAD strictly fails when attempted to unwrap with `KeyScope.VAULT` AAD (throws `GeneralSecurityException`).
+- Command: `.\gradlew.bat :core:security:testDebugUnitTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All tests passed)
+
+## 2. Security Verification
+- No secret key material or database key is leaked on negative conditions.
+- Strict 6-digit PIN policy respected throughout UI and cryptographic layers.
+- Exponential backoff delay computed on repeated failures via `PinPolicy.calculateDelayMs`.

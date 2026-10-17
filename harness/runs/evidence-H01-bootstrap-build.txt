@@ -1,0 +1,26 @@
+# EVIDENCE: bootstrap-build
+# Phase: H01 (Воспроизводимый Android bootstrap)
+# RunId: 20261017-085018-gemini-h01
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:14:06Z
+# Status: PASS
+
+## 1. Environment & Toolchain
+- OS: Microsoft Windows 11 Pro (build 10.0.26200)
+- JDK: Eclipse Temurin OpenJDK 17.0.20.1+1 (JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot")
+- Android SDK: Command-line Tools 22.0, Build-Tools 35.0.0, Platforms android-29 / android-35 (ANDROID_HOME="C:\Users\ldleness\AppData\Local\Android\Sdk")
+- Gradle: 8.9 Wrapper (distributionSha256Sum="d5362bad436020c21be5722330b11a92a301e841721021d8671655263884d881")
+- Android Gradle Plugin: 8.7.3
+- Kotlin: 2.0.21
+
+## 2. Execution Command
+- Command: `.\gradlew.bat assembleDebug --no-daemon`
+- Working Directory: `P:\apps\android` (mapped via subst P: to `D:\Project\Моя жизнь`)
+- Exit Code: 0
+
+## 3. Build Result
+- Status: BUILD SUCCESSFUL in 28s
+- Actionable Tasks: 125 actionable tasks (26 executed, 99 up-to-date)
+- Target Outputs:
+  - `apps/android/app/build/outputs/apk/debug/app-debug.apk` (Size: 8,333,782 bytes)
+  - Modules compiled: `:app`, `:core:model`, `:core:designsystem`, `:core:security`, `:core:storage`

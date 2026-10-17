@@ -1,0 +1,34 @@
+EVIDENCE: build-scaffold-and-blocker
+Phase: H01
+Step: H01.2
+Timestamp: 2026-10-16T20:16:30.000Z
+RunId: 20261016-200730-gemini-h01
+
+Build Foundation Created:
+- Gradle wrapper scripts: apps/android/gradlew, apps/android/gradlew.bat, apps/android/gradle/wrapper/gradle-wrapper.jar
+- Gradle wrapper properties: apps/android/gradle/wrapper/gradle-wrapper.properties (Gradle 8.9 with verified SHA-256)
+- Version Catalog: apps/android/gradle/libs.versions.toml (pinned versions for AGP 8.7.0, Kotlin 2.0.21, Compose, Room, SQLCipher, Biometric)
+- Settings & root build: apps/android/settings.gradle.kts, apps/android/build.gradle.kts
+- 5 Modules configured with build.gradle.kts and unit tests:
+  * :app (Android application, Compose, minSdk 29, compileSdk 35, MainActivity with Paper Focus layout, AppContainer)
+  * :core:model (pure Kotlin JVM, data classes, repository interfaces)
+  * :core:designsystem (Android library, Paper theme tokens, Compose components)
+  * :core:security (Android library, SessionManager, Keystore contracts)
+  * :core:storage (Android library, Room/SQLCipher contracts, InMemoryTaskRepository)
+- Security & Manifests:
+  * apps/android/app/src/main/AndroidManifest.xml (NO INTERNET, allowBackup=false, dataExtractionRules)
+  * apps/android/app/src/main/res/xml/data_extraction_rules.xml (full exclude)
+  * apps/android/app/src/main/res/xml/backup_rules.xml (full exclude)
+
+Execution Check:
+- Command: .\gradlew.bat tasks
+- Cwd: apps/android
+- Exit code: 1
+- Error output:
+  ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
+  Please set the JAVA_HOME variable in your environment to match the location of your Java installation.
+
+Status:
+- Code and build structure: PASS (verified by verify-project.mjs)
+- Gradle execution: BLOCKED by ENV-001 (host machine lacks JDK 17/21 in PATH / JAVA_HOME).
+- Per protocol and AGENTS.md, stopping execution due to unresolved environment blocker without fabricating results.

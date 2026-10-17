@@ -1,0 +1,48 @@
+# EVIDENCE: bootstrap-quality
+# Phase: H01 (Воспроизводимый Android bootstrap)
+# RunId: 20261017-085018-gemini-h01
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:17:07Z
+# Status: PASS
+
+## 1. Code Formatting (ktlint)
+- Command: `.\gradlew.bat ktlintCheck --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0
+- Result: BUILD SUCCESSFUL (37 actionable tasks: 28 executed, 9 up-to-date)
+- Modules checked: `:app`, `:core:model`, `:core:designsystem`, `:core:security`, `:core:storage`
+- Violations: 0
+
+## 2. Unit Tests
+- Command: `.\gradlew.bat testDebugUnitTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0
+- Result: BUILD SUCCESSFUL (83 actionable tasks: 21 executed, 62 up-to-date)
+- Modules & Test suites passed:
+  - `:app`: `AppContainerTest` (container initialization, repository bindings)
+  - `:core:model`: Model serialization & domain invariants
+  - `:core:designsystem`: Theme tokens & palette verification
+  - `:core:security`: Security primitives contract tests
+  - `:core:storage`: `InMemoryTaskRepositoryTest` (task storage, completion, dashboard summary)
+- Total Unit Tests: 7 passed, 0 failed, 0 skipped
+
+## 3. Static Analysis (Android Lint)
+- Command: `.\gradlew.bat lintDebug --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0
+- Result: BUILD SUCCESSFUL (149 actionable tasks: 41 executed, 108 up-to-date)
+- Report: `apps/android/app/build/reports/lint-results-debug.html`
+- Errors: 0
+
+## 4. UI / Compose Smoke Instrumentation Test
+- Command: `.\gradlew.bat connectedDebugAndroidTest --no-daemon`
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64)
+- Exit Code: 0
+- Test Class: `local.mylife.MainActivityTest`
+- Test Method: `testDashboardAndDrawerDisplayed`
+- Assertions verified on real device:
+  - Header: "Главная" is displayed
+  - Highlighted card: "БЛИЖАЙШЕЕ ДЕЛО" is displayed
+  - Navigation drawer button "☰" is clickable
+  - Drawer content is opened and categories are rendered
+- Result: 1 tests passed, 0 failed, 0 skipped in 1m 4s

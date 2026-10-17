@@ -1,0 +1,11 @@
+{
+  "id": null,
+  "kind": "automated",
+  "status": "NOT_RUN",
+  "command": null,
+  "cwd": null,
+  "exitCode": null,
+  "observedAt": null,
+  "evidencePath": null,
+  "sha256": null
+}

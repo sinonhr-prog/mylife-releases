@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261016-sol-jdk17",
+  "phase": "H01",
+  "model": "gpt-6.1-sol",
+  "identitySource": "operator-confirmed",
+  "identityRef": "Owner message in current chat explicitly confirming gpt-6.1-sol",
+  "authorizationRef": "Owner request in current chat: install JDK 17 and run build/instrumentation",
+  "startedAt": "2026-10-16T20:19:00Z",
+  "completedAt": "2026-10-16T20:28:01.7593887Z",
+  "status": "BLOCKED",
+  "completedSteps": [],
+  "changedPaths": [
+    "apps/android/gradle.properties",
+    "apps/android/README.md",
+    "docs/STATUS.md",
+    "docs/knowledge/ERRORS.md"
+  ],
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "b10dbfdc8f532a214c79ead8afa04b38d2b493b15e43e258bd46c59f0dd877e3",
+  "handoffPath": "harness/runs/20261016-sol-jdk17-handoff.md",
+  "checks": [
+    {
+      "observedAt": "2026-10-16T20:28:01.7866136Z",
+      "id": "bootstrap-build",
+      "command": "./gradlew.bat :app:assembleDebug connectedDebugAndroidTest",
+      "evidenceSha256": "5c6cab9a05f414960bea22940f74009a4e3ba6e61b414a666a7280bc465d9bfe",
+      "status": "FAIL",
+      "evidencePath": "harness/runs/20261016-sol-jdk17-evidence.txt",
+      "exitCode": 1
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# EVIDENCE: sqlcipher-spike
+# Phase: H02 (Криптографический прототип и точная спецификация)
+# Step: H02.1 (Проверить SQLCipher и Room)
+# RunId: 20261017-092100-gemini-h02
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:25:57Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.SqlCipherSpikeTest`
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64)
+- Library: `net.zetetic:sqlcipher-android:4.6.1`
+- Native Library: `libsqlcipher.so` (tested on x86_64 architecture with 16 KB page alignment)
+- Command: `.\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0
+- Total Tests: 6 passed, 0 failed, 0 skipped in 3.24s (XML report: `TEST-test_api29(AVD) - 10-_core_storage-.xml`)
+
+## 2. Verified Test Cases
+1. `testEncryptedDatabaseRoundTrip`:
+   - Room database initialized with `SupportOpenHelperFactory(validPassphrase)`.
+   - Synthetic entity `task-spike-1` saved, retrieved, verified for integrity, dashboard summary calculated, and status updated.
+   - Result: PASS.
+2. `testDatabaseFileIsCiphertextNotPlaintext`:
+   - Database file on disk examined: first 16 bytes do NOT contain plaintext magic `SQLite format 3\000`.
+   - Full byte search confirms zero plaintext leakage of sensitive strings.
+   - Result: PASS.
+3. `testWrongKeyFailsToOpenOrQuery`:
+   - Database populated with valid key closed and re-opened using `wrongPassphrase`.
+   - Query attempts strictly throw `SQLiteException` ("file is not a database" / authentication failure).
+   - Result: PASS.
+4. `testWalModeAndPragmaSettings`:
+   - WAL journal mode verified via `PRAGMA journal_mode`.
+   - `PRAGMA cipher_version` confirms active SQLCipher engine (4.6.1).
+   - Result: PASS.
+5. `testSchemaMigrationPreservesEncryptedData`:
+   - Database migrated from schema v1 to v2 (`MIGRATION_1_2`) with `ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT ''`.
+   - Existing encrypted data preserved and accessible after migration.
+   - Result: PASS.
+6. `testAbiAndArchitectureSupport`:
+   - Native `libsqlcipher.so` dynamically loaded via `System.loadLibrary("sqlcipher")`.
+   - Supported ABIs verified on device; direct query execution succeeds without UnsatisfiedLinkError.
+   - Result: PASS.

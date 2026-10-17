@@ -1,0 +1,23 @@
+EVIDENCE: identity-context
+Phase: H00
+Step: H00.1
+Timestamp: 2026-10-16T20:01:00.000Z
+RunId: 20261016-200000-gemini-h00
+
+Model Verification:
+- Model ID: gemini-3.8-flash
+- Identity Source: runtime-metadata
+- Identity Ref: USER_SETTINGS_CHANGE: Model Selection -> Gemini 3.8 Flash (Medium) normalized to gemini-3.8-flash per harness/MODEL_ROUTING.md
+- Profile path verified: harness/profiles/GEMINI.md (via node scripts/harness.mjs route gemini-3.8-flash)
+
+Context and Rules:
+- AGENTS.md, README.md, GEMINI.md, harness/MODEL_ROUTING.md, harness/profiles/GEMINI.md, harness/CURRENT.md, harness/PROTOCOL.md, harness/phases/H00.md read and verified.
+- Project skills read explicitly: mylife-execute-slice, mylife-verify-evidence, mylife-context-handoff.
+- Design verified: "Paper / Focus" (white / graphite), left drawer menu with all categories, no bottom navigation tabs.
+
+File Tree & Repository Status:
+- Working Directory: D:\Project\Моя жизнь
+- Git status: Not a git repository (checked: fatal: not a git repository).
+- Existing directories: apps/android (empty structure, no gradle wrapper yet), design/ (dashboard.html, tokens, previews), docs/ (specifications, ADRs, knowledge), harness/ (phases, profiles, skills, scripts, templates), scripts/ (verification scripts).
+- No private keys, real passwords, or personal credentials present in repo.
+Status: PASS

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "decisions": [
+    {"id":"implementation-start","status":"approved","scope":"Начало реализации H01 и последующих этапов в явно разрешённом диапазоне","approvedPhases":["H01","H02","H03","H04","H05","H06","H07","H08","H09","H10"],"sourceRef":"USER_REQUEST: Все разрешаю (2026-10-17T13:12:38+03:00)","recordedAt":"2026-10-17T10:12:38.000Z"},
+    {"id":"pin-policy","status":"approved","scope":"Отдельный PIN приложения 6 цифр и отдельная длинная парольная фраза архива .lifevault","sourceRef":"USER_REQUEST: pin 6 цифр, не больше (2026-10-17T13:10:17+03:00)","recordedAt":"2026-10-17T10:10:17.000Z"},
+    {"id":"crypto-design-review","status":"approved","scope":"Утверждённый ADR key envelopes, KDF, архивного формата и инвалидации после профильного ревью","sourceRef":"USER_REQUEST: Все разрешаю (2026-10-17T13:12:38+03:00)","recordedAt":"2026-10-17T10:12:38.000Z"},
+    {"id":"real-secrets-review","status":"pending","scope":"Профильное ревью защиты и разрешение перейти от synthetic fixtures к личным секретам","sourceRef":null,"recordedAt":null},
+    {"id":"personal-release","status":"pending","scope":"Личный подписанный выпуск и конкретные разрешённые действия на устройстве владельца","sourceRef":null,"recordedAt":null}
+  ]
+}

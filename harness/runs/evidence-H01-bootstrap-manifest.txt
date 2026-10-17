@@ -1,0 +1,50 @@
+# EVIDENCE: bootstrap-manifest
+# Phase: H01 (Воспроизводимый Android bootstrap)
+# RunId: 20261017-085018-gemini-h01
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T09:17:12Z
+# Status: PASS
+
+## 1. Merged Manifest File
+- Source: `apps/android/app/build/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml`
+- Target SDK: 35
+- Min SDK: 29
+- Package Name: `local.mylife.debug`
+
+## 2. Network & Privacy Audit
+- Network Permissions:
+  - `android.permission.INTERNET`: ABSENT (Zero network access, strictly offline)
+  - `android.permission.ACCESS_NETWORK_STATE`: ABSENT
+- Telemetry & Analytics:
+  - Third-party analytics/crashlytics SDKs: None
+- Permissions Requested:
+  - `android.permission.USE_BIOMETRIC` (for local vault unlocking)
+  - `android.permission.USE_FINGERPRINT` (fallback for older API 29 devices)
+  - `local.mylife.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (signature protection level)
+
+## 3. Backup & Data Extraction Exclusion Policy
+- `android:allowBackup="false"`
+- `android:dataExtractionRules="@xml/data_extraction_rules"`:
+  - `<cloud-backup>`: excludes root, file, database, sharedpref, external
+  - `<device-transfer>`: excludes root, file, database, sharedpref, external
+- `android:fullBackupContent="@xml/backup_rules"`:
+  - All domains excluded
+
+## 4. Exported Components Audit
+- `local.mylife.MainActivity`: `exported="true"`, Intent filter: `action.MAIN` + `category.LAUNCHER`
+- `androidx.compose.ui.tooling.PreviewActivity`: debug-only artifact
+- `androidx.activity.ComponentActivity`: debug-only artifact
+- Providers: `androidx.startup.InitializationProvider` (`exported="false"`)
+- Services: `androidx.room.MultiInstanceInvalidationService` (`exported="false"`)
+- Receivers: `androidx.profileinstaller.ProfileInstallReceiver` (`exported="true"`, protected with `permission="android.permission.DUMP"`)
+
+## 5. Dependency Pinned Versions
+- Gradle Version Catalog: `apps/android/gradle/libs.versions.toml`
+  - AGP: 8.7.3
+  - Kotlin: 2.0.21
+  - Compose BOM: 2024.12.01
+  - Room: 2.6.1
+  - SQLCipher: 4.5.4
+  - Biometric: 1.2.0-alpha05
+  - Coroutines: 1.9.0
+  - Security Crypto: 1.1.0-alpha06
