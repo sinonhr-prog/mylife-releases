@@ -243,4 +243,19 @@ ID, дата, обезличенный симптом/воспроизведен
 - Результат: модульные тесты `:app:testDebugUnitTest` успешно проходят (7/7 PASS, BUILD SUCCESSFUL).
 - Профилактика: для парсинга JSON в юнит-тестах на JVM использовать реальную библиотеку в testImplementation либо kotlinx.serialization.
 
+## UPD-001 — хост release-assets.githubusercontent.com отсутствовал в allowlist, рассинхронизация артефакта APK
+
+- Дата: 17.10.2026; runId: 20261017-152400-gemini-updater-fix; проверка экрана «Обновления» на физическом устройстве Vivo.
+- Симптом: при нажатии «Проверить обновления» на физическом устройстве появлялась ошибка: `SecurityException: Хост не входит в доверенный allowlist: release-assets.githubusercontent.com`. После первой попытки исправления ошибка повторилась.
+- Диагностика и причины:
+  1. При скачивании файлов релиза (`update.json`, `mylife.apk`) GitHub отдает HTTP-редирект (302/303) на CDN-хосты `release-assets.githubusercontent.com` и `objects.githubusercontent.com`. В исходном списке доверенных хостов `allowedHosts` присутствовал только `objects.githubusercontent.com`, а `release-assets.githubusercontent.com` и суффикс `githubusercontent.com` отсутствовали.
+  2. В `openRedirectingConnection` обработка кодов редиректа не включала код HTTP 303 (`HTTP_SEE_OTHER`), который возвращают некоторые прокси/CDN GitHub.
+  3. Рассинхронизация сборки: бинарный артефакт `app-debug.apk` был собран на несколько секунд раньше, чем были применены правки в исходном коде Kotlin. При анализе содержимого `classes.dex` предыдущего установленного APK строка `release-assets.githubusercontent.com` отсутствовала.
+- Исправление:
+  1. В `allowedHosts` добавлены `release-assets.githubusercontent.com` и `githubusercontent.com`, а проверка `isAllowed` дополнена поддержкой всех поддоменов `host.endsWith(".$allowed")`.
+  2. В `openRedirectingConnection` добавлен код `HttpURLConnection.HTTP_SEE_OTHER` (303).
+  3. Выполнена чистая пересборка APK (`:app:assembleDebug`) с проверкой фактического наличия строк в скомпилированном `classes.dex`, и APK заново установлен на устройство через `adb install -r`.
+- Проверка: локальный unit-тест валидации URL и обработчика ответов пройден; инспекция DEX подтвердила наличие хостов в скомпилированном коде.
+- Профилактика: всегда сверять timestamp сборки APK и фактический байт-код DEX перед отправкой на устройство и тестированием.
+
 

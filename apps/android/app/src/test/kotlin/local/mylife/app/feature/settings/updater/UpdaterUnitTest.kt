@@ -54,6 +54,7 @@ class UpdaterUnitTest {
             "api.github.com",
             "github.com",
             "objects.githubusercontent.com",
+            "release-assets.githubusercontent.com",
         )
 
         fun validate(urlString: String): Boolean {
@@ -69,6 +70,7 @@ class UpdaterUnitTest {
         assertTrue(validate("https://api.github.com/repos/sinonhr-prog/mylife-releases/releases/latest"))
         assertTrue(validate("https://github.com/sinonhr-prog/mylife-releases/releases/download/v0.2.0/mylife.apk"))
         assertTrue(validate("https://objects.githubusercontent.com/github-production-release-asset-2e65be/123/456"))
+        assertTrue(validate("https://release-assets.githubusercontent.com/12345/abcdef"))
 
         // Запрещённый протокол HTTP (cleartext)
         assertFalse(validate("http://api.github.com/repos/sinonhr-prog/mylife-releases/releases/latest"))

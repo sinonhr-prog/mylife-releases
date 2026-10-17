@@ -33,7 +33,6 @@ class GitHubReleaseClient(
         "github.com",
         "objects.githubusercontent.com",
         "release-assets.githubusercontent.com",
-        "githubusercontent.com",
     )
 
     private fun validateHost(urlString: String): URL {
@@ -261,7 +260,7 @@ class GitHubReleaseClient(
             }
 
             val code = conn.responseCode
-            if (code in listOf(HttpURLConnection.HTTP_MOVED_PERM, HttpURLConnection.HTTP_MOVED_TEMP, 307, 308)) {
+            if (code in listOf(HttpURLConnection.HTTP_MOVED_PERM, HttpURLConnection.HTTP_MOVED_TEMP, HttpURLConnection.HTTP_SEE_OTHER, 307, 308)) {
                 val location = conn.getHeaderField("Location")
                     ?: throw IllegalStateException("HTTP $code без заголовка Location")
                 url = validateHost(location)
