@@ -7,7 +7,11 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 object EncryptedDatabaseFactory {
     init {
-        System.loadLibrary("sqlcipher")
+        try {
+            System.loadLibrary("sqlcipher")
+        } catch (_: UnsatisfiedLinkError) {
+            // Handled when running on desktop JVM / test harnesses
+        }
     }
 
     fun createDatabase(
@@ -21,6 +25,24 @@ object EncryptedDatabaseFactory {
             Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
+                databaseName,
+            ).openHelperFactory(factory)
+
+        builderCustomizer?.invoke(builder)
+        return builder.build()
+    }
+
+    fun createVaultDatabase(
+        context: Context,
+        databaseName: String,
+        passphrase: ByteArray,
+        builderCustomizer: (RoomDatabase.Builder<VaultDatabase>.() -> Unit)? = null,
+    ): VaultDatabase {
+        val factory = SupportOpenHelperFactory(passphrase)
+        val builder =
+            Room.databaseBuilder(
+                context.applicationContext,
+                VaultDatabase::class.java,
                 databaseName,
             ).openHelperFactory(factory)
 

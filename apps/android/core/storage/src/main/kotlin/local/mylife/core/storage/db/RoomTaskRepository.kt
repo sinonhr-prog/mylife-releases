@@ -10,19 +10,28 @@ class RoomTaskRepository(
     private val taskDao: TaskDao,
 ) : TaskRepository, DashboardRepository {
     override suspend fun getOpenTasks(): List<TaskItem> {
-        return taskDao.getOpenTasks().map { it.toDomain() }
+        return taskDao.getTasksByStatus(TaskStatus.OPEN).map { it.toDomain() }
+    }
+
+    override suspend fun getAllTasks(): List<TaskItem> {
+        return taskDao.getAllTasks().map { it.toDomain() }
     }
 
     override suspend fun getTaskById(id: String): TaskItem? {
-        return taskDao.getTaskById(id)?.toDomain()
+        return taskDao.getById(id)?.toDomain()
     }
 
     override suspend fun saveTask(task: TaskItem) {
-        taskDao.insertTask(TaskEntity.fromDomain(task))
+        taskDao.insert(task.toEntity())
     }
 
     override suspend fun markTaskDone(id: String) {
-        taskDao.updateTaskStatus(id, TaskStatus.DONE.name, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        taskDao.updateStatus(id, TaskStatus.DONE, now, now)
+    }
+
+    override suspend fun deleteTask(id: String) {
+        taskDao.deleteById(id)
     }
 
     override suspend fun getDashboardSummary(): DashboardSummary {
@@ -33,4 +42,28 @@ class RoomTaskRepository(
             openTasksCount = openTasks.size,
         )
     }
+
+    private fun TaskEntity.toDomain() = TaskItem(
+        id = id,
+        title = title,
+        description = description,
+        dueAtEpochMs = dueAtEpochMs,
+        status = status,
+        priority = priority,
+        completedAtEpochMs = completedAtEpochMs,
+        createdAtEpochMs = createdAtEpochMs,
+        updatedAtEpochMs = updatedAtEpochMs,
+    )
+
+    private fun TaskItem.toEntity() = TaskEntity(
+        id = id,
+        title = title,
+        description = description,
+        dueAtEpochMs = dueAtEpochMs,
+        status = status,
+        priority = priority,
+        completedAtEpochMs = completedAtEpochMs,
+        createdAtEpochMs = createdAtEpochMs,
+        updatedAtEpochMs = updatedAtEpochMs,
+    )
 }

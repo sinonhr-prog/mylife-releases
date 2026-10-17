@@ -1,0 +1,21 @@
+# EVIDENCE: migrations
+# Phase: H04 (Схемы, репозитории и зашифрованные файлы)
+# Step: H04.1 (Создать схемы и миграции)
+# RunId: 20261017-140200-gemini-h04
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:09:11Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.SqlCipherSpikeTest`
+- Test Method: `testSchemaMigrationPreservesEncryptedData`
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64)
+- Command: `.\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All tests passed)
+
+## 2. Migration Integrity Verification
+- Database created under schema version 1 with pre-existing encrypted records.
+- Schema transition to version 2 applied via `AppDatabase.MIGRATION_1_2`.
+- Verified that all existing records and encrypted fields remain completely intact, readable, and undamaged after schema transition.
+- Destructive migration fallback strictly disallowed.

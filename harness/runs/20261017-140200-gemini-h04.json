@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261017-140200-gemini-h04",
+  "phase": "H04",
+  "model": "gemini-3.8-flash",
+  "identitySource": "runtime-metadata",
+  "identityRef": "USER_SETTINGS_CHANGE: Model Selection -> Gemini 3.8 Flash (Medium) normalized to gemini-3.8-flash per harness/MODEL_ROUTING.md",
+  "authorizationRef": "USER_REQUEST: Владелец поручил продолжать разработку и публиковать изменения на GitHub на согласованный диапазон H01-H10 (harness/decisions.json)",
+  "startedAt": "2026-10-17T11:01:46.000Z",
+  "completedAt": "2026-10-17T11:11:00.000Z",
+  "status": "READY_FOR_GATE",
+  "completedSteps": [
+    "H04.1",
+    "H04.2",
+    "H04.3",
+    "H04.4"
+  ],
+  "changedPaths": [
+    "apps/android/core/model/src/main/kotlin/local/mylife/core/model/Models.kt",
+    "apps/android/core/model/src/test/kotlin/local/mylife/core/model/ModelsTest.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/Entities.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/Converters.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/Daos.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/AppDatabase.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/VaultDatabase.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/EncryptedDatabaseFactory.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/Repositories.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/db/RoomTaskRepository.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/InMemoryTaskRepository.kt",
+    "apps/android/core/storage/src/main/kotlin/local/mylife/core/storage/files/EncryptedAttachmentStore.kt",
+    "apps/android/core/storage/src/androidTest/kotlin/local/mylife/core/storage/SqlCipherSpikeTest.kt",
+    "docs/DECISIONS.md",
+    "docs/STATUS.md",
+    "harness/CURRENT.md",
+    "harness/runs/20261017-140200-gemini-h04-handoff.md",
+    "harness/runs/evidence-H04-storage-real.txt",
+    "harness/runs/evidence-H04-migrations.txt",
+    "harness/runs/evidence-H04-attachment-failure.txt",
+    "harness/runs/evidence-H04-domain-contracts.txt"
+  ],
+  "planDigest": "960162410943bf4288b4048aa10ec3497b2a0919407712c560c6c14639e62e51",
+  "sourceDigest": "6c09e91b082d255825dea94e89ee37dc24469b6d44941117d7859ea616e7b6bc",
+  "handoffPath": "harness/runs/20261017-140200-gemini-h04-handoff.md",
+  "checks": [
+    {
+      "id": "storage-real",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:09:11.000Z",
+      "evidencePath": "harness/runs/evidence-H04-storage-real.txt",
+      "sha256": "feb7a99599061c25cbb964d9b95dc0ca01f8af5a76e31cc65825cb8188103d1e"
+    },
+    {
+      "id": "migrations",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:09:11.000Z",
+      "evidencePath": "harness/runs/evidence-H04-migrations.txt",
+      "sha256": "c4bc8ccccbd30686dc0493cccbfefc86bb70fffb0cb8177073d63115df3705cc"
+    },
+    {
+      "id": "attachment-failure",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:09:11.000Z",
+      "evidencePath": "harness/runs/evidence-H04-attachment-failure.txt",
+      "sha256": "e590e8f723e72384645a39283d36bd401bee64de59d56b35beb07ee4b28cbbdb"
+    },
+    {
+      "id": "domain-contracts",
+      "status": "PASS",
+      "kind": "automated",
+      "command": ".\\gradlew.bat :core:model:test --no-daemon",
+      "cwd": "P:/apps/android",
+      "exitCode": 0,
+      "observedAt": "2026-10-17T11:07:13.000Z",
+      "evidencePath": "harness/runs/evidence-H04-domain-contracts.txt",
+      "sha256": "741a39211ef9b7bc34763ea6fbe76599b44f49c328228c5a0600a6ea890f99aa"
+    }
+  ]
+}

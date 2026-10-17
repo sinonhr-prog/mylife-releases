@@ -1,0 +1,30 @@
+# EVIDENCE: storage-real
+# Phase: H04 (Схемы, репозитории и зашифрованные файлы)
+# Step: H04.1 (Создать схемы и миграции)
+# RunId: 20261017-140200-gemini-h04
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:09:11Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.SqlCipherSpikeTest`
+- Target Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64 emulator)
+- Command: `.\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (8/8 tests passed)
+
+## 2. Verified Storage Features
+1. `testEncryptedDatabaseRoundTrip`:
+   - Room + SQLCipher 4.6.1 encryption on disk.
+   - Insert, query, update, and dashboard queries.
+2. `testForeignKeyConstraintsEnforced`:
+   - Verified `FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE RESTRICT`.
+   - Attempting to delete a category with dependent products raises `SQLiteConstraintException`.
+3. `testDashboardQueriesWithLastVisitedAt`:
+   - `lastVisitedAtEpochMs` nullable indexing and sorting verified.
+4. `testDatabaseFileIsCiphertextNotPlaintext`:
+   - Database file verified on disk: lacks SQLite plaintext magic and contains zero plaintext leak.
+5. `testWrongKeyFailsToOpenOrQuery`:
+   - Opening with invalid 256-bit passphrase strictly fails with `SQLiteException`.
+6. `testAbiAndArchitectureSupport`:
+   - 16 KB page-aligned native SQLCipher binaries functional on Android runtime.

@@ -1,0 +1,31 @@
+# EVIDENCE: domain-contracts
+# Phase: H04 (Схемы, репозитории и зашифрованные файлы)
+# Step: H04.2 (Реализовать контракты)
+# RunId: 20261017-140200-gemini-h04
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:07:13Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.model.ModelsTest`
+- Target Classes: `Product`, `Place`, `Note`, `TaskItem`, `ReminderItem`
+- Command: `.\gradlew.bat :core:model:test --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All 6 unit tests passed)
+
+## 2. Verified Domain Validations
+1. Ratings Contract:
+   - Valid ratings (1..10) accepted.
+   - Ratings 0, 11, 15 strictly rejected with `IllegalArgumentException`.
+2. Prices and Currencies:
+   - Negative prices rejected.
+   - Prices set without ISO currency code strictly rejected.
+3. URL Security:
+   - Only `http://` and `https://` schemes allowed.
+   - Dangerous schemes (`javascript:`, `file:`) rejected before reaching storage.
+4. Field Length Bounds:
+   - Title length strictly limited to 160 characters.
+   - Descriptions limited to 20,000 characters.
+   - Note body limited to 100,000 characters.
+5. Repository Layer Boundaries:
+   - Room Entity classes are kept private to `:core:storage` and mapped strictly to domain models.

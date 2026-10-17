@@ -13,6 +13,10 @@ class InMemoryTaskRepository : TaskRepository, DashboardRepository {
         return tasks.values.filter { it.status == TaskStatus.OPEN }
     }
 
+    override suspend fun getAllTasks(): List<TaskItem> {
+        return tasks.values.toList()
+    }
+
     override suspend fun getTaskById(id: String): TaskItem? {
         return tasks[id]
     }
@@ -24,6 +28,10 @@ class InMemoryTaskRepository : TaskRepository, DashboardRepository {
     override suspend fun markTaskDone(id: String) {
         val existing = tasks[id] ?: return
         tasks[id] = existing.copy(status = TaskStatus.DONE)
+    }
+
+    override suspend fun deleteTask(id: String) {
+        tasks.remove(id)
     }
 
     override suspend fun getDashboardSummary(): DashboardSummary {

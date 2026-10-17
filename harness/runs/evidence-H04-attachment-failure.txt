@@ -1,0 +1,29 @@
+# EVIDENCE: attachment-failure
+# Phase: H04 (Схемы, репозитории и зашифрованные файлы)
+# Step: H04.3 (Защитить фотографии)
+# RunId: 20261017-140200-gemini-h04
+# Model: gemini-3.8-flash
+# Timestamp: 2026-10-17T11:09:11Z
+# Status: PASS
+
+## 1. Execution Environment & Test Target
+- Test Suite: `local.mylife.core.storage.SqlCipherSpikeTest`
+- Test Method: `testAttachmentStoreEncryptionAndOrphanCleanup`
+- Target Implementation: `local.mylife.core.storage.files.EncryptedAttachmentStore`
+- Device: `test_api29(AVD) - 10` (Android 10.0, API 29, x86_64)
+- Command: `.\gradlew.bat :core:storage:connectedDebugAndroidTest --no-daemon`
+- Working Directory: `P:\apps\android`
+- Exit Code: 0 (All tests passed)
+
+## 2. Verified Attachment Protections
+1. Format & MIME Type Validation:
+   - Allowlist strictly restricted to `image/jpeg`, `image/png`, `image/webp`. Non-image MIME types (e.g. `application/pdf`) immediately rejected with `IllegalArgumentException`.
+2. Corruption & Failure Safety:
+   - Corrupted streams rejected during decoding without writing permanent files to storage.
+   - Atomic temporary staging via `.tmp` files ensures incomplete writes leave zero dangling files.
+3. EXIF & Metadata Protection:
+   - Re-encoded streams strip location and EXIF metadata.
+4. Thumbnail Generation:
+   - Scaled thumbnails generated and independently encrypted with distinct AEAD AAD.
+5. Orphan Cleanup:
+   - `cleanupOrphans` actively sweeps and removes unreferenced attachments and stale temporary files.
