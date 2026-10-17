@@ -32,6 +32,8 @@ class GitHubReleaseClient(
         "api.github.com",
         "github.com",
         "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com",
+        "githubusercontent.com",
     )
 
     private fun validateHost(urlString: String): URL {
@@ -177,12 +179,8 @@ class GitHubReleaseClient(
     }
 
     private fun downloadText(urlString: String): String {
-        val url = validateHost(urlString)
-        val conn = (url.openConnection() as HttpsURLConnection).apply {
-            connectTimeout = connectTimeoutMs
-            readTimeout = readTimeoutMs
-            setRequestProperty("User-Agent", "MyLife-Android-Updater")
-        }
+        val validatedUrl = validateHost(urlString)
+        val conn = openRedirectingConnection(validatedUrl)
         return conn.inputStream.bufferedReader().use { it.readText() }
     }
 
