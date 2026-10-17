@@ -323,7 +323,7 @@ fun ReminderCardItem(
 
 @Composable
 fun ReminderEditDialog(
-    initialReminder: ReminderItem,
+    initialReminder: ReminderDraft,
     availableTasks: List<local.mylife.core.model.TaskItem>,
     errorMessage: String?,
     onDismiss: () -> Unit,

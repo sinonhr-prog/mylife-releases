@@ -14,13 +14,24 @@ import local.mylife.core.model.TaskRepository
 import local.mylife.core.storage.scheduler.SchedulerReconciler
 import java.util.UUID
 
+// An unfinished form is not a persisted ReminderItem: its title may be empty.
+data class ReminderDraft(
+    val id: String = UUID.randomUUID().toString(),
+    val taskId: String? = null,
+    val title: String = "",
+    val fireEpochMs: Long = System.currentTimeMillis() + 3600000L,
+    val repeat: ReminderRepeat = ReminderRepeat.ONCE,
+    val isEnabled: Boolean = true,
+    val createdAtEpochMs: Long = System.currentTimeMillis(),
+)
+
 data class RemindersUiState(
     val reminders: List<ReminderItem> = emptyList(),
     val availableTasks: List<TaskItem> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val showAddDialog: Boolean = false,
-    val editingReminder: ReminderItem? = null,
+    val editingReminder: ReminderDraft? = null,
     val diagnostics: DeviceDiagnostics? = null,
 )
 
@@ -66,26 +77,35 @@ class RemindersViewModel(
     fun openAddReminder(linkedTaskId: String? = null) {
         val now = System.currentTimeMillis()
         val defaultFire = now + (3600 * 1000L) // +1 час по умолчанию
-        val newReminder = ReminderItem(
+        val newReminder = ReminderDraft(
             id = UUID.randomUUID().toString(),
             taskId = linkedTaskId,
             title = "",
             fireEpochMs = defaultFire,
-            repeatRule = ReminderRepeat.ONCE.name,
+            repeat = ReminderRepeat.ONCE,
             isEnabled = true,
             createdAtEpochMs = now,
-            updatedAtEpochMs = now,
         )
         _uiState.value = _uiState.value.copy(
             showAddDialog = true,
             editingReminder = newReminder,
+            errorMessage = null,
         )
     }
 
     fun openEditReminder(reminder: ReminderItem) {
         _uiState.value = _uiState.value.copy(
             showAddDialog = true,
-            editingReminder = reminder,
+            editingReminder = ReminderDraft(
+                id = reminder.id,
+                taskId = reminder.taskId,
+                title = reminder.title,
+                fireEpochMs = reminder.fireEpochMs,
+                repeat = reminder.repeat,
+                isEnabled = reminder.isEnabled,
+                createdAtEpochMs = reminder.createdAtEpochMs,
+            ),
+            errorMessage = null,
         )
     }
 
@@ -112,7 +132,10 @@ class RemindersViewModel(
         viewModelScope.launch {
             try {
                 val now = System.currentTimeMillis()
-                val updated = current.copy(
+                val updated = ReminderItem(
+                    id = current.id,
+                    isEnabled = current.isEnabled,
+                    createdAtEpochMs = current.createdAtEpochMs,
                     title = trimmedTitle,
                     fireEpochMs = fireEpochMs,
                     repeatRule = repeat.name,
